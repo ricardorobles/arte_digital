@@ -274,3 +274,73 @@ body.ar-active .save-floating { background: #d62828; color: white; }
 #stage, #stage canvas { width: 100%; height: 100%; display: block; }
 #stage canvas { position: absolute; inset: 0; }
 body:not(.ar-active) #stage canvas { background: #f4f3ef; }
+
+
+/* v8 · disparador de cámara: toque = foto · pulsación larga = video */
+.capture-floating {
+  position: absolute;
+  z-index: 34;
+  left: max(14px, env(safe-area-inset-left));
+  bottom: max(14px, env(safe-area-inset-bottom));
+  width: 62px;
+  height: 62px;
+  padding: 0;
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,.96);
+  outline: 1px solid rgba(0,0,0,.16);
+  background: #d62828;
+  box-shadow: 0 8px 28px rgba(0,0,0,.22);
+  touch-action: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+  display: grid;
+  place-items: center;
+}
+.capture-floating .capture-core {
+  width: 42px;
+  height: 42px;
+  border: 2px solid rgba(255,255,255,.9);
+  border-radius: 50%;
+  transition: width .16s ease, height .16s ease, border-radius .16s ease, background .16s ease;
+}
+.capture-floating:active .capture-core { width: 36px; height: 36px; }
+.capture-floating.recording { animation: capturePulse 1.2s ease-in-out infinite; }
+.capture-floating.recording .capture-core {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border-color: white;
+  background: white;
+}
+.record-time {
+  position: absolute;
+  left: 72px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 48px;
+  padding: 5px 7px;
+  border-radius: 999px;
+  background: rgba(20,20,22,.84);
+  color: #fff;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .08em;
+  opacity: 0;
+  pointer-events: none;
+}
+.capture-floating.recording .record-time { opacity: 1; }
+body.ar-active .capture-floating { background: #d62828; }
+@keyframes capturePulse {
+  0%,100% { box-shadow: 0 8px 28px rgba(0,0,0,.22), 0 0 0 0 rgba(214,40,40,.35); }
+  50% { box-shadow: 0 8px 28px rgba(0,0,0,.22), 0 0 0 10px rgba(214,40,40,0); }
+}
+@media (max-width: 640px) {
+  .capture-floating {
+    left: max(12px, env(safe-area-inset-left));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: 58px;
+    height: 58px;
+  }
+  .capture-floating .capture-core { width: 39px; height: 39px; }
+  .record-time { left: 67px; }
+}

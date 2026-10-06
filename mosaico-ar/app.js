@@ -67,6 +67,15 @@ let draggingPiece = false;
 let dragMoved = false;
 let uiGuardUntil = 0;
 let padGesture = null;
+let captureHoldTimer = null;
+let capturePointerId = null;
+let captureLongPress = false;
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordingStream = null;
+let recordingStartedAt = 0;
+let recordingClock = null;
+const recordTime = $('#recordTime');
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf4f3ef);
@@ -476,7 +485,7 @@ finishBtn.addEventListener('click', () => {
 });
 undoBtn.addEventListener('click', undoLast);
 clearBtn.addEventListener('click', clearAll);
-saveBtn.addEventListener('click', saveComposition);
+
 deleteBtn.addEventListener('click', deleteSelected);
 deselectBtn.addEventListener('click', () => deselectPiece(true));
 
@@ -519,37 +528,183 @@ function disposeObject(root) {
     }
   });
 }
-function saveComposition() {
-  // Guardamos una imagen PNG del estado visible del lienzo 3D.
-  // En AR, los navegadores no exponen el video de la cámara al canvas WebXR;
-  // por eso la captura incluye las piezas renderizadas, pero no el passthrough de cámara.
+function renderCleanFrame() {
   const previousSelection = selectionBox.visible;
   selectionBox.visible = false;
   renderer.render(scene, camera);
+  selectionBox.visible = previousSelection && !!selectedPiece;
+  if (selectedPiece) updateSelectionBox();
+}
 
-  const finishCapture = () => {
-    selectionBox.visible = previousSelection && !!selectedPiece;
-    if (selectedPiece) updateSelectionBox();
-  };
+function dataURLToBlob(dataURL) {
+  const [head, data] = dataURL.split(',');
+  const mime = (head.match(/data:([^;]+)/) || [,'image/png'])[1];
+  const binary = atob(data);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
 
-  renderer.domElement.toBlob((blob) => {
-    if (!blob) {
-      finishCapture();
-      flash('No se pudo generar la imagen');
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2500);
+}
+
+async function shareOrDownload(blob, filename, kind = 'archivo') {
+  const file = new File([blob], filename, { type: blob.type || 'application/octet-stream' });
+  try {
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Mosaico AR' });
+      flash(kind === 'foto' ? 'Foto lista para guardar en Fotos' : 'Video listo para guardar o compartir');
       return;
     }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `mosaico-${mosaicId}.png`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
-    finishCapture();
-    flash(isAR ? 'Imagen de la obra guardada · la cámara depende del navegador' : `Imagen #${mosaicId} guardada`);
-  }, 'image/png');
+  } catch (err) {
+    if (err?.name === 'AbortError') return;
+    console.warn('No se pudo abrir compartir:', err);
+  }
+  downloadBlob(blob, filename);
+  flash(`${kind === 'foto' ? 'Foto' : 'Video'} descargado`);
 }
+
+async function capturePhoto() {
+  if (mediaRecorder?.state === 'recording') return;
+  renderCleanFrame();
+  try {
+    // toDataURL es sincrónico: conserva mejor la activación del toque para abrir
+    // la hoja nativa de compartir/guardar en teléfonos compatibles.
+    const dataURL = renderer.domElement.toDataURL('image/png');
+    const blob = dataURLToBlob(dataURL);
+    await shareOrDownload(blob, `mosaico-${mosaicId}.png`, 'foto');
+  } catch (err) {
+    console.warn(err);
+    flash('No se pudo capturar la imagen');
+  }
+}
+
+function chooseRecordingMime() {
+  const options = [
+    'video/mp4;codecs=avc1.42E01E',
+    'video/mp4',
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8',
+    'video/webm'
+  ];
+  return options.find((type) => window.MediaRecorder?.isTypeSupported?.(type)) || '';
+}
+
+function formatElapsed(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const min = String(Math.floor(total / 60)).padStart(2, '0');
+  const sec = String(total % 60).padStart(2, '0');
+  return `${min}:${sec}`;
+}
+
+function setRecordingUI(active) {
+  saveBtn.classList.toggle('recording', active);
+  recordTime.setAttribute('aria-hidden', active ? 'false' : 'true');
+  if (!active) recordTime.textContent = '00:00';
+}
+
+function startVideoCapture() {
+  if (mediaRecorder?.state === 'recording') return;
+  if (!renderer.domElement.captureStream || !window.MediaRecorder) {
+    flash('Este navegador no permite grabar desde la obra');
+    return;
+  }
+  try {
+    renderCleanFrame();
+    recordingStream = renderer.domElement.captureStream(30);
+    const mimeType = chooseRecordingMime();
+    mediaRecorder = mimeType ? new MediaRecorder(recordingStream, { mimeType }) : new MediaRecorder(recordingStream);
+    recordedChunks = [];
+    mediaRecorder.ondataavailable = (e) => { if (e.data?.size) recordedChunks.push(e.data); };
+    mediaRecorder.onerror = (e) => {
+      console.warn('MediaRecorder:', e.error || e);
+      flash('Se interrumpió la grabación');
+      stopRecordingClock();
+      setRecordingUI(false);
+    };
+    mediaRecorder.onstop = async () => {
+      stopRecordingClock();
+      setRecordingUI(false);
+      recordingStream?.getTracks().forEach((t) => t.stop());
+      recordingStream = null;
+      const type = mediaRecorder?.mimeType || mimeType || 'video/webm';
+      const blob = new Blob(recordedChunks, { type });
+      recordedChunks = [];
+      if (!blob.size) return flash('No se pudo generar el video');
+      const ext = type.includes('mp4') ? 'mp4' : 'webm';
+      await shareOrDownload(blob, `mosaico-${mosaicId}.${ext}`, 'video');
+    };
+    mediaRecorder.start(250);
+    recordingStartedAt = performance.now();
+    setRecordingUI(true);
+    recordingClock = setInterval(() => {
+      recordTime.textContent = formatElapsed(performance.now() - recordingStartedAt);
+    }, 250);
+    navigator.vibrate?.(35);
+    flash('Grabando · soltá el botón para terminar');
+  } catch (err) {
+    console.warn(err);
+    setRecordingUI(false);
+    flash('No se pudo iniciar la grabación');
+  }
+}
+
+function stopRecordingClock() {
+  if (recordingClock) clearInterval(recordingClock);
+  recordingClock = null;
+}
+
+function stopVideoCapture() {
+  if (mediaRecorder?.state === 'recording') {
+    mediaRecorder.stop();
+    navigator.vibrate?.(20);
+  }
+}
+
+function cancelCaptureHold() {
+  if (captureHoldTimer) clearTimeout(captureHoldTimer);
+  captureHoldTimer = null;
+}
+
+saveBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+saveBtn.addEventListener('pointerdown', (e) => {
+  guardUIEvent(e);
+  e.preventDefault();
+  capturePointerId = e.pointerId;
+  captureLongPress = false;
+  saveBtn.setPointerCapture?.(e.pointerId);
+  cancelCaptureHold();
+  captureHoldTimer = setTimeout(() => {
+    captureLongPress = true;
+    startVideoCapture();
+  }, 520);
+});
+saveBtn.addEventListener('pointerup', async (e) => {
+  if (capturePointerId !== e.pointerId) return;
+  guardUIEvent(e);
+  e.preventDefault();
+  cancelCaptureHold();
+  if (captureLongPress) stopVideoCapture();
+  else await capturePhoto();
+  capturePointerId = null;
+  captureLongPress = false;
+  saveBtn.releasePointerCapture?.(e.pointerId);
+});
+saveBtn.addEventListener('pointercancel', (e) => {
+  if (capturePointerId !== e.pointerId) return;
+  cancelCaptureHold();
+  if (captureLongPress) stopVideoCapture();
+  capturePointerId = null;
+  captureLongPress = false;
+});
 
 
 let flashTimer;
@@ -682,7 +837,7 @@ padDelete.addEventListener('click', (e) => { guardUIEvent(e); deleteSelected(); 
 padDeselect.addEventListener('click', (e) => { guardUIEvent(e); deselectPiece(true); setPlacementSelection(null, false); });
 
 document.body.addEventListener('beforexrselect', (event) => {
-  if (event.target.closest?.('button, input, .piece-drawer, .drawer-toggle, .save-floating, .transform-pad, .topbar')) {
+  if (event.target.closest?.('button, input, .piece-drawer, .drawer-toggle, .capture-floating, .transform-pad, .topbar')) {
     uiGuardUntil = performance.now() + 700;
     event.preventDefault();
   }
