@@ -4,102 +4,126 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0b0b0d" />
-  <title>Arte Digital</title>
-  <meta name="description" content="Arte Digital — proyectos, experiencias y recorridos interactivos." />
+  <meta name="description" content="Arte Digital — proyectos, experiencias y recorridos interactivos de Ricardo Robles." />
+  <title>Arte Digital · Ricardo Robles</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="./">ARTE DIGITAL</a>
-    <nav>
+    <a class="brand" href="#inicio">ARTE DIGITAL</a>
+    <nav class="nav" aria-label="Navegación principal">
       <a href="#proyectos">Proyectos</a>
-      <a href="./mapamundi/">Mapamundi</a>
-      <a href="./mipieza360/">Mi pieza 360</a>
-      <a href="./mundo-ar/">Mundo AR</a>
       <a href="#quien-soy">Quién soy</a>
     </nav>
   </header>
 
   <main>
-    <section class="hero">
-      <div class="hero-copy">
+    <section id="inicio" class="hero">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="hero-overlay" aria-hidden="true"></div>
+      <div class="hero-content">
         <p class="eyebrow">EXPERIENCIAS DIGITALES</p>
-        <h1>Arte, territorio<br>y exploración digital.</h1>
-        <p class="lead">Un espacio para reunir obras, recorridos y experiencias interactivas.</p>
-        <a class="button" href="#proyectos">Explorar proyectos</a>
+        <h1>Arte, territorio y<br>exploración digital.</h1>
+        <p class="hero-copy">Un espacio para reunir obras, recorridos y experiencias interactivas.</p>
+        <a class="button button-light" href="#proyectos">Explorar proyectos</a>
       </div>
+      <div class="scroll-note">DESLIZAR ↓</div>
     </section>
 
-    <section class="projects" id="proyectos">
+    <section id="proyectos" class="projects section-shell">
       <div class="section-heading">
         <p class="eyebrow">PROYECTOS</p>
         <h2>Experiencias inmersivas</h2>
-        <p>Obras digitales para recorrer, escuchar, observar e incorporar al espacio mediante 360°, VR y realidad aumentada.</p>
       </div>
 
       <article class="project-card">
-        <div class="project-image project-image-mapamundi" role="img" aria-label="Vista previa de Mapamundi"></div>
+        <a class="project-image" href="./mapamundi/" aria-label="Abrir Mapamundi">
+          <img src="./mapamundi-preview.jpg" alt="Vista previa de Mapamundi" />
+          <span class="project-number">01</span>
+        </a>
         <div class="project-info">
-          <p class="project-number">01</p>
+          <p class="project-type">RECORRIDO 360°</p>
           <h3>Mapamundi</h3>
-          <p>Recorrido visual inmersivo navegable desde computadora, tablet, teléfono o visor VR.</p>
-          <div class="actions">
+          <p>Experiencia panorámica interactiva en 360°. Un recorrido visual inmersivo navegable desde computadora, tablet o teléfono.</p>
+          <div class="project-actions">
             <a class="button" href="./mapamundi/">Ingresar al recorrido</a>
             <a class="text-link" href="./mapamundi/" target="_blank" rel="noopener">Abrir en nueva pestaña ↗</a>
           </div>
         </div>
       </article>
 
-      <article class="project-card">
-        <div class="project-image project-image-mipieza" role="img" aria-label="Vista previa de Mi pieza 360"></div>
+      <article class="project-card reverse">
+        <a class="project-image" href="./mipieza360/" aria-label="Abrir Mi pieza 360">
+          <img src="./mipieza360-preview.jpg" alt="Vista previa de Mi pieza 360" />
+          <span class="project-number">02</span>
+        </a>
         <div class="project-info">
-          <p class="project-number">02</p>
+          <p class="project-type">RECORRIDO 360°</p>
           <h3>Mi pieza 360</h3>
-          <p>Experiencia panorámica 360° con paisaje sonoro espacial y navegación inmersiva.</p>
-          <div class="actions">
-            <a class="button" href="./mipieza360/">Ingresar al recorrido</a>
+          <p>Una pieza inmersiva pensada para ser recorrida desde el navegador, explorando imagen, espacio y punto de vista.</p>
+          <div class="project-actions">
+            <a class="button" href="./mipieza360/">Ingresar a la experiencia</a>
             <a class="text-link" href="./mipieza360/" target="_blank" rel="noopener">Abrir en nueva pestaña ↗</a>
           </div>
         </div>
       </article>
 
       <article class="project-card">
-        <div class="project-image project-image-mundo" role="img" aria-label="Vista previa de Mundo AR"></div>
+        <a class="project-image" href="./mundo-ar/" aria-label="Abrir Mundo AR">
+          <img src="./mundo-ar-preview.jpg" alt="Vista previa de Mundo AR" />
+          <span class="project-number">03</span>
+        </a>
         <div class="project-info">
-          <p class="project-number">03</p>
+          <p class="project-type">REALIDAD AUMENTADA</p>
           <h3>Mundo AR</h3>
-          <p>Objeto tridimensional interactivo para explorar en pantalla y colocar en el espacio real desde el teléfono.</p>
-          <div class="actions">
-            <a class="button" href="./mundo-ar/">Explorar en 3D / AR</a>
+          <p>Una obra tridimensional que puede activarse desde el teléfono y situarse en el espacio real para recorrerla e interactuar con ella.</p>
+          <div class="project-actions">
+            <a class="button" href="./mundo-ar/">Abrir experiencia AR</a>
             <a class="text-link" href="./mundo-ar/" target="_blank" rel="noopener">Abrir en nueva pestaña ↗</a>
+          </div>
+        </div>
+      </article>
+
+      <article class="project-card reverse featured-new">
+        <a class="project-image" href="./mosaico-ar/" aria-label="Abrir Mosaico AR">
+          <img src="./mosaico-preview.jpg" alt="Vista previa de Mosaico AR" />
+          <span class="project-number">04</span>
+          <span class="new-badge">NUEVO</span>
+        </a>
+        <div class="project-info">
+          <p class="project-type">OBRA GENERATIVA · REALIDAD AUMENTADA</p>
+          <h3>Mosaico AR</h3>
+          <p>Elegí una pieza, modificá su escala y profundidad y construí tu propio mosaico sobre una pared o el piso. Cada composición es única.</p>
+          <div class="project-actions">
+            <a class="button" href="./mosaico-ar/">Construir un mosaico</a>
+            <a class="text-link" href="./mosaico-ar/" target="_blank" rel="noopener">Abrir en nueva pestaña ↗</a>
           </div>
         </div>
       </article>
     </section>
 
-
-    <section class="about" id="quien-soy">
-      <div class="about-image">
-        <img src="ricardo-robles.jpg" alt="Retrato de Ricardo Robles">
-      </div>
-      <div class="about-copy">
-        <p class="eyebrow">QUIÉN SOY</p>
-        <h2>Ricardo Robles</h2>
-        <p class="about-lead">Arquitecto, urbanista, docente, investigador y artista visual.</p>
-        <p>Mi trabajo cruza planificación urbana, sistemas de información geográfica, teledetección y ciencia de datos territoriales con la experimentación artística y digital. Me interesa explorar nuevas formas de representar, interpretar y recorrer el territorio mediante cartografías, visualizaciones, experiencias inmersivas, realidad virtual y realidad aumentada.</p>
-        <p>Desarrollo actividades académicas y de investigación vinculadas al CURDIUR — CONICET / UNR y a la enseñanza del urbanismo.</p>
-        <a class="text-link about-contact" href="mailto:robles@curdiur-conicet.gob.ar">robles@curdiur-conicet.gob.ar ↗</a>
+    <section id="quien-soy" class="about section-shell">
+      <div class="about-grid">
+        <div class="about-portrait">
+          <img src="./perfil.jpg" alt="Ricardo Robles" onerror="this.parentElement.classList.add('portrait-missing'); this.remove();" />
+        </div>
+        <div class="about-copy">
+          <p class="eyebrow">QUIÉN SOY</p>
+          <h2>Ricardo Robles</h2>
+          <p>Soy arquitecto, artista visual y docente. Mi trabajo cruza arte, territorio, representación y tecnologías digitales, explorando formas de construir experiencias espaciales e interactivas a partir de imágenes, cartografías, modelos y entornos inmersivos.</p>
+          <p>Arte Digital reúne una serie abierta de experimentaciones entre dibujo, realidad aumentada, recorridos 360°, visualización y espacio.</p>
+          <a class="text-link contact" href="mailto:robles@curdiur-conicet.gob.ar">robles@curdiur-conicet.gob.ar ↗</a>
+        </div>
       </div>
     </section>
-
   </main>
 
-  <footer>
-    <span>Derechos reservados de Ricardo Robles</span>
-    <a href="mailto:robles@curdiur-conicet.gob.ar">Contacto: robles@curdiur-conicet.gob.ar</a>
+  <footer class="site-footer section-shell">
+    <span>© 2026 Ricardo Robles · Derechos reservados.</span>
+    <span>Contacto: <a href="mailto:robles@curdiur-conicet.gob.ar">robles@curdiur-conicet.gob.ar</a></span>
   </footer>
 </body>
 </html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7f6f2" />
+  <meta name="description" content="Mosaico AR — obra interactiva de Arte Digital." />
+  <title>Mosaico AR · Arte Digital</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <a class="brand" href="../" aria-label="Volver a Arte Digital">ARTE DIGITAL</a>
+      <div class="project-title">
+        <span>MOSAICO AR</span>
+        <span id="mosaicCode" class="code"></span>
+      </div>
+    </header>
+
+    <main id="stage" aria-label="Espacio tridimensional interactivo"></main>
+
+    <section id="intro" class="intro" aria-live="polite">
+      <p class="eyebrow">OBRA INTERACTIVA</p>
+      <h1>Construí tu propio mosaico.</h1>
+      <p class="lead">Elegí una pieza, ajustá su profundidad y colocala sobre una superficie. Cada composición es única.</p>
+      <div class="intro-actions">
+        <button id="startDesktop" class="button primary" type="button">PROBAR EN 3D</button>
+        <div id="arButtonMount" class="ar-mount"></div>
+      </div>
+      <p class="hint">En un teléfono compatible, usá AR para colocar las piezas sobre una pared o el piso.</p>
+    </section>
+
+    <aside id="toolbox" class="toolbox hidden" aria-label="Herramientas del mosaico">
+      <div class="toolbox-head">
+        <span>PIEZAS</span>
+        <button id="closeTools" class="icon-button" type="button" aria-label="Ocultar herramientas">×</button>
+      </div>
+
+      <div id="pieceStrip" class="piece-strip" role="list"></div>
+
+      <div class="controls-grid">
+        <label class="control">
+          <span>PROFUNDIDAD</span>
+          <div class="range-row">
+            <input id="depthRange" type="range" min="0.01" max="0.20" value="0.05" step="0.01" />
+            <output id="depthOutput">5 cm</output>
+          </div>
+        </label>
+
+        <label class="control">
+          <span>ESCALA</span>
+          <div class="range-row">
+            <input id="scaleRange" type="range" min="0.55" max="1.80" value="1" step="0.05" />
+            <output id="scaleOutput">100%</output>
+          </div>
+        </label>
+      </div>
+
+      <div class="actions-row">
+        <button id="undoBtn" class="button ghost" type="button">DESHACER</button>
+        <button id="clearBtn" class="button ghost" type="button">LIMPIAR</button>
+        <button id="saveBtn" class="button ghost" type="button">GUARDAR</button>
+        <button id="finishBtn" class="button dark" type="button">TERMINAR</button>
+      </div>
+
+      <p id="modeHelp" class="mode-help">En 3D: hacé clic sobre el piso o la pared. Arrastrá para orbitar y usá la rueda para acercarte.</p>
+    </aside>
+
+    <button id="showTools" class="show-tools hidden" type="button">EDITAR MOSAICO</button>
+
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+
+    <footer class="footer">Ricardo Robles · Arte Digital</footer>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

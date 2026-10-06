@@ -1,184 +1,88 @@
 :root {
   --bg: #0b0b0d;
-  --panel: #141418;
-  --text: #f4f4f2;
-  --muted: #a7a7ad;
-  --line: #2a2a31;
-  --accent: #ffffff;
+  --panel: #111114;
+  --text: #f3f3f0;
+  --muted: #a5a5a8;
+  --line: rgba(255,255,255,.16);
+  --paper: #f2f0ea;
+  --ink: #111111;
 }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: "Montserrat", Arial, sans-serif;
-  line-height: 1.5;
-}
+body { margin: 0; background: var(--bg); color: var(--text); font-family: "Montserrat", Arial, sans-serif; font-weight: 400; }
 a { color: inherit; }
+img { display: block; max-width: 100%; }
+
 .site-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px clamp(20px, 5vw, 72px);
-  background: rgba(11, 11, 13, .82);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--line);
+  position: fixed; inset: 0 0 auto 0; z-index: 50;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 22px clamp(20px, 4vw, 58px);
+  background: linear-gradient(to bottom, rgba(11,11,13,.78), rgba(11,11,13,0));
+  backdrop-filter: blur(2px);
 }
-.brand {
-  text-decoration: none;
-  font-weight: 700;
-  letter-spacing: .12em;
-  font-size: 14px;
-}
-nav { display: flex; gap: 24px; }
-nav a { text-decoration: none; color: var(--muted); font-size: 13px; }
-nav a:hover { color: var(--text); }
-.hero {
-  min-height: 72vh;
-  display: grid;
-  align-items: end;
-  padding: clamp(44px, 8vw, 110px) clamp(20px, 7vw, 110px);
-  background:
-    linear-gradient(90deg, rgba(11,11,13,.96) 0%, rgba(11,11,13,.72) 48%, rgba(11,11,13,.24) 100%),
-    url("mapamundi-preview.jpg") center/cover no-repeat;
-}
-.hero-copy { max-width: 820px; }
-.eyebrow {
-  margin: 0 0 14px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: .18em;
-}
-h1 {
-  margin: 0;
-  font-size: clamp(48px, 8vw, 116px);
-  line-height: .95;
-  letter-spacing: -.055em;
-  font-weight: 600;
-}
-.lead {
-  max-width: 620px;
-  margin: 28px 0 34px;
-  color: #d0d0d4;
-  font-size: clamp(16px, 2vw, 21px);
-}
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 48px;
-  padding: 0 22px;
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: #0b0b0d;
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 600;
-  transition: .2s ease;
-}
-.button:hover { background: transparent; color: var(--text); }
-.projects { padding: clamp(70px, 9vw, 130px) clamp(20px, 7vw, 110px); }
-.section-heading { max-width: 650px; margin-bottom: 42px; }
-.section-heading h2 { margin: 0 0 10px; font-size: clamp(36px, 5vw, 70px); letter-spacing: -.04em; }
-.section-heading p:last-child { color: var(--muted); }
-.project-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(280px, .75fr);
-  min-height: 520px;
-  border: 1px solid var(--line);
-  background: var(--panel);
-}
- .project-image { min-height: 420px; background-position: center; background-size: cover; background-repeat: no-repeat; }
-.project-image-mapamundi { background-image: url("mapamundi-preview.jpg"); }
-.project-image-mipieza { background-image: url("mipieza360-preview.jpg"); }
-.project-image-mundo { background-image: url("mundo-ar-preview.jpg"); }
-.project-card + .project-card { margin-top: 34px; }
-.project-info { display: flex; flex-direction: column; justify-content: flex-end; padding: clamp(28px, 4vw, 54px); }
-.project-number { color: var(--muted); font-size: 12px; letter-spacing: .18em; }
-.project-info h3 { margin: 4px 0 14px; font-size: clamp(32px, 4vw, 52px); letter-spacing: -.04em; }
-.project-info > p { color: var(--muted); }
-.actions { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; margin-top: 28px; }
-.text-link { color: var(--muted); text-decoration: none; font-size: 13px; }
-.text-link:hover { color: var(--text); }
+.brand { text-decoration: none; font-size: 12px; letter-spacing: .24em; font-weight: 700; }
+.nav { display: flex; gap: 24px; }
+.nav a { text-decoration: none; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #d3d3d3; }
 
-.about {
-  display: grid;
-  grid-template-columns: minmax(260px, .8fr) minmax(0, 1.2fr);
-  gap: clamp(38px, 7vw, 110px);
-  align-items: center;
-  padding: clamp(80px, 10vw, 150px) clamp(20px, 7vw, 110px);
-  border-top: 1px solid var(--line);
-  background: #0e0e11;
-}
-.about-image {
-  max-width: 560px;
-}
-.about-image img {
-  display: block;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-  filter: saturate(.92) contrast(1.03);
-}
-.about-copy {
-  max-width: 760px;
-}
-.about-copy h2 {
-  margin: 0 0 20px;
-  font-size: clamp(42px, 6vw, 82px);
-  line-height: .98;
-  letter-spacing: -.05em;
-  font-weight: 600;
-}
-.about-lead {
-  margin: 0 0 22px;
-  color: var(--text) !important;
-  font-size: clamp(18px, 2.2vw, 26px);
-  line-height: 1.35;
-}
-.about-copy > p {
-  color: var(--muted);
-  max-width: 690px;
-}
-.about-contact {
-  display: inline-block;
-  margin-top: 20px;
-}
-footer a {
-  color: var(--muted);
-  text-decoration: none;
-}
-footer a:hover { color: var(--text); }
+.hero { position: relative; min-height: 100svh; display: grid; align-items: end; overflow: hidden; }
+.hero-bg { position: absolute; inset: 0; background: url("mapamundi-preview.jpg") center/cover no-repeat; filter: grayscale(.22) contrast(1.06); transform: scale(1.025); }
+.hero-overlay { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(5,5,7,.92) 0%, rgba(5,5,7,.63) 46%, rgba(5,5,7,.25) 100%), linear-gradient(0deg, rgba(5,5,7,.72), transparent 45%); }
+.hero-content { position: relative; z-index: 2; padding: 0 clamp(20px, 7vw, 110px) clamp(70px, 9vw, 118px); max-width: 1050px; }
+.eyebrow { margin: 0 0 16px; font-size: 10px; letter-spacing: .22em; font-weight: 600; }
+.hero h1 { margin: 0; max-width: 900px; font-size: clamp(50px, 8vw, 120px); line-height: .91; letter-spacing: -.055em; font-weight: 400; }
+.hero-copy { max-width: 530px; margin: 28px 0; color: #cecece; font-size: 14px; line-height: 1.75; }
+.scroll-note { position: absolute; right: clamp(20px, 4vw, 58px); bottom: 28px; z-index: 3; font-size: 8px; letter-spacing: .18em; color: #c6c6c8; }
 
-footer {
-  display: flex;
-  justify-content: space-between;
-  padding: 26px clamp(20px, 7vw, 110px);
-  border-top: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 12px;
-}
-@media (max-width: 900px) {
-  nav { gap: 14px; }
-  nav a:nth-child(2),
-  nav a:nth-child(3),
-  nav a:nth-child(4) { display: none; }
-}
+.button { display: inline-flex; align-items: center; justify-content: center; min-height: 43px; padding: 0 17px; border: 1px solid var(--line); text-decoration: none; font-size: 9px; letter-spacing: .13em; text-transform: uppercase; transition: .2s ease; }
+.button:hover { background: white; color: #111; border-color: white; }
+.button-light { border-color: white; background: white; color: #111; }
+.button-light:hover { background: transparent; color: white; }
+.text-link { text-decoration: none; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: #c9c9cb; }
+.text-link:hover { color: white; }
+
+.section-shell { width: min(1380px, calc(100% - 40px)); margin: 0 auto; }
+.projects { padding: 110px 0 135px; }
+.section-heading { margin-bottom: 52px; }
+.section-heading h2, .about h2 { margin: 0; font-size: clamp(34px, 5vw, 72px); line-height: 1; letter-spacing: -.045em; font-weight: 400; }
+
+.project-card { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, .72fr); gap: clamp(28px, 6vw, 90px); align-items: center; padding: 58px 0; border-top: 1px solid var(--line); }
+.project-card.reverse { grid-template-columns: minmax(280px, .72fr) minmax(0, 1.5fr); }
+.project-card.reverse .project-image { order: 2; }
+.project-card.reverse .project-info { order: 1; }
+.project-image { position: relative; display: block; aspect-ratio: 16/10; overflow: hidden; background: #17171a; }
+.project-image img { width: 100%; height: 100%; object-fit: cover; transition: transform .7s cubic-bezier(.2,.7,.2,1); }
+.project-image:hover img { transform: scale(1.025); }
+.project-number { position: absolute; left: 18px; top: 16px; padding: 6px 8px; background: rgba(11,11,13,.78); font-size: 9px; letter-spacing: .16em; }
+.new-badge { position: absolute; right: 18px; top: 16px; padding: 6px 8px; background: var(--paper); color: var(--ink); font-size: 8px; letter-spacing: .14em; font-weight: 700; }
+.project-type { margin: 0 0 14px; color: #aaa; font-size: 9px; letter-spacing: .17em; }
+.project-info h3 { margin: 0; font-size: clamp(34px, 4vw, 62px); line-height: .95; letter-spacing: -.045em; font-weight: 400; }
+.project-info > p:not(.project-type) { max-width: 520px; margin: 24px 0 28px; color: var(--muted); font-size: 13px; line-height: 1.75; }
+.project-actions { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.featured-new { border-bottom: 1px solid var(--line); }
+
+.about { padding: 30px 0 120px; }
+.about-grid { display: grid; grid-template-columns: minmax(260px, .72fr) minmax(0, 1.28fr); gap: clamp(35px, 7vw, 110px); align-items: center; padding-top: 80px; border-top: 1px solid var(--line); }
+.about-portrait { aspect-ratio: 4/5; background: #17171a; overflow: hidden; }
+.about-portrait img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(.05); }
+.about-portrait.portrait-missing::after { content: "RICARDO ROBLES"; height: 100%; display: grid; place-items: center; color: #55555b; font-size: 11px; letter-spacing: .22em; }
+.about-copy p:not(.eyebrow) { max-width: 720px; color: var(--muted); font-size: 14px; line-height: 1.85; }
+.about-copy .contact { display: inline-block; margin-top: 15px; color: var(--text); }
+
+.site-footer { display: flex; justify-content: space-between; gap: 22px; flex-wrap: wrap; padding: 26px 0 38px; border-top: 1px solid var(--line); color: #848489; font-size: 9px; letter-spacing: .06em; }
+.site-footer a { text-decoration: none; }
+
 @media (max-width: 780px) {
-  nav { gap: 16px; }
-  nav a:nth-child(2),
-  nav a:nth-child(3),
-  nav a:nth-child(4) { display: none; }
-  .hero { min-height: 66vh; }
-  .project-card { grid-template-columns: 1fr; }
-  .project-image { min-height: 55vw; }
-  .about { grid-template-columns: 1fr; }
-  .about-image { max-width: 420px; }
-  footer { flex-direction: column; gap: 8px; }
+  .site-header { padding: 18px 20px; }
+  .nav { gap: 14px; }
+  .nav a { font-size: 8px; }
+  .hero-content { padding: 0 20px 74px; }
+  .hero h1 { font-size: clamp(44px, 15vw, 74px); }
+  .scroll-note { display: none; }
+  .projects { padding: 78px 0 100px; }
+  .project-card, .project-card.reverse { grid-template-columns: 1fr; gap: 27px; padding: 38px 0 50px; }
+  .project-card.reverse .project-image, .project-card.reverse .project-info { order: initial; }
+  .project-image { aspect-ratio: 1/1; }
+  .about-grid { grid-template-columns: 1fr; padding-top: 55px; }
+  .about-portrait { max-width: 480px; }
 }
