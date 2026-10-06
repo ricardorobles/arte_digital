@@ -70,6 +70,9 @@ let padGesture = null;
 let captureHoldTimer = null;
 let capturePointerId = null;
 let captureLongPress = false;
+let capturePointerDown = false;
+let displayStreamPromise = null;
+let displayStream = null;
 let mediaRecorder = null;
 let recordedChunks = [];
 let recordingStream = null;
@@ -305,6 +308,7 @@ function placeFromMatrix(matrix) {
   placed.push(piece);
   const placedName = PIECES[piece.userData.pieceIndex].name;
   selectPiece(piece, false);
+  closePieceDrawer();
   flash(`${placedName} colocada`);
 }
 
@@ -343,6 +347,7 @@ function placeOnDesktop(clientX, clientY) {
   placed.push(piece);
   const placedName = PIECES[piece.userData.pieceIndex].name;
   selectPiece(piece, false);
+  closePieceDrawer();
   flash(`${placedName} · ${hit.object.userData.surfaceType === 'floor' ? 'piso' : 'pared'}`);
 }
 
@@ -469,10 +474,12 @@ function enterDesktop() {
 startDesktop.addEventListener('click', enterDesktop);
 resetView.addEventListener('click', resetCamera);
 
-closeTools.addEventListener('click', () => {
+function closePieceDrawer() {
   toolbox.classList.add('hidden');
   showTools.classList.remove('hidden');
-});
+}
+
+closeTools.addEventListener('click', closePieceDrawer);
 showTools.addEventListener('click', () => {
   showTools.classList.add('hidden');
   toolbox.classList.remove('hidden');
@@ -572,18 +579,92 @@ async function shareOrDownload(blob, filename, kind = 'archivo') {
   flash(`${kind === 'foto' ? 'Foto' : 'Video'} descargado`);
 }
 
-async function capturePhoto() {
-  if (mediaRecorder?.state === 'recording') return;
-  renderCleanFrame();
+async function requestScreenStream() {
+  if (!navigator.mediaDevices?.getDisplayMedia) return null;
+  if (displayStream?.active) return displayStream;
   try {
-    // toDataURL es sincrónico: conserva mejor la activación del toque para abrir
-    // la hoja nativa de compartir/guardar en teléfonos compatibles.
+    displayStream = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: { ideal: 30, max: 60 } },
+      audio: false
+    });
+    displayStream.getVideoTracks()[0]?.addEventListener('ended', () => {
+      displayStream = null;
+      displayStreamPromise = null;
+      if (mediaRecorder?.state === 'recording') mediaRecorder.stop();
+    }, { once: true });
+    return displayStream;
+  } catch (err) {
+    if (err?.name !== 'AbortError' && err?.name !== 'NotAllowedError') console.warn('Captura de pantalla:', err);
+    displayStream = null;
+    displayStreamPromise = null;
+    return null;
+  }
+}
+
+function getScreenStreamFromGesture() {
+  if (displayStream?.active) return Promise.resolve(displayStream);
+  if (!displayStreamPromise) displayStreamPromise = requestScreenStream();
+  return displayStreamPromise;
+}
+
+function stopDisplayStream(stream = displayStream) {
+  stream?.getTracks?.().forEach((t) => t.stop());
+  if (stream === displayStream) {
+    displayStream = null;
+    displayStreamPromise = null;
+  }
+}
+
+async function captureFrameFromStream(stream) {
+  const track = stream?.getVideoTracks?.()[0];
+  if (!track) throw new Error('No hay pista de pantalla');
+
+  const video = document.createElement('video');
+  video.muted = true;
+  video.playsInline = true;
+  video.srcObject = stream;
+  await video.play();
+  if (!video.videoWidth || !video.videoHeight) {
+    await new Promise((resolve) => {
+      const done = () => resolve();
+      video.addEventListener('loadedmetadata', done, { once: true });
+      setTimeout(done, 500);
+    });
+  }
+  // Un pequeño margen permite que el sistema entregue un fotograma completo de la pantalla elegida.
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, video.videoWidth || innerWidth);
+  canvas.height = Math.max(1, video.videoHeight || innerHeight);
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  video.pause();
+  video.srcObject = null;
+  return await new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('No se generó la imagen')), 'image/png'));
+}
+
+async function capturePhoto(screenStream = null) {
+  if (mediaRecorder?.state === 'recording') return;
+  let stream = screenStream;
+  try {
+    if (!stream && navigator.mediaDevices?.getDisplayMedia) stream = await getScreenStreamFromGesture();
+    if (stream) {
+      const blob = await captureFrameFromStream(stream);
+      stopDisplayStream(stream);
+      await shareOrDownload(blob, `mosaico-pantalla-${mosaicId}.png`, 'foto');
+      return;
+    }
+
+    // Fallback para navegadores móviles sin Screen Capture API (especialmente algunos Safari/iOS).
+    renderCleanFrame();
     const dataURL = renderer.domElement.toDataURL('image/png');
     const blob = dataURLToBlob(dataURL);
     await shareOrDownload(blob, `mosaico-${mosaicId}.png`, 'foto');
+    flash('Tu navegador no permite capturar toda la pantalla; se guardó la escena 3D');
   } catch (err) {
     console.warn(err);
-    flash('No se pudo capturar la imagen');
+    stopDisplayStream(stream);
+    flash('No se pudo capturar la pantalla');
   }
 }
 
@@ -611,15 +692,22 @@ function setRecordingUI(active) {
   if (!active) recordTime.textContent = '00:00';
 }
 
-function startVideoCapture() {
+async function startVideoCapture(screenStream = null) {
   if (mediaRecorder?.state === 'recording') return;
-  if (!renderer.domElement.captureStream || !window.MediaRecorder) {
-    flash('Este navegador no permite grabar desde la obra');
-    return;
+  let stream = screenStream;
+  if (!stream) stream = await getScreenStreamFromGesture();
+  if (!stream) {
+    if (!renderer.domElement.captureStream || !window.MediaRecorder) {
+      flash('Este navegador no permite grabar la pantalla');
+      return;
+    }
+    stream = renderer.domElement.captureStream(30);
+    flash('La grabación de pantalla no está disponible; se graba la escena 3D');
   }
+  if (!window.MediaRecorder) return flash('Este navegador no permite grabar video');
+
   try {
-    renderCleanFrame();
-    recordingStream = renderer.domElement.captureStream(30);
+    recordingStream = stream;
     const mimeType = chooseRecordingMime();
     mediaRecorder = mimeType ? new MediaRecorder(recordingStream, { mimeType }) : new MediaRecorder(recordingStream);
     recordedChunks = [];
@@ -633,14 +721,19 @@ function startVideoCapture() {
     mediaRecorder.onstop = async () => {
       stopRecordingClock();
       setRecordingUI(false);
+      const wasDisplay = recordingStream === displayStream;
       recordingStream?.getTracks().forEach((t) => t.stop());
+      if (wasDisplay) {
+        displayStream = null;
+        displayStreamPromise = null;
+      }
       recordingStream = null;
       const type = mediaRecorder?.mimeType || mimeType || 'video/webm';
       const blob = new Blob(recordedChunks, { type });
       recordedChunks = [];
       if (!blob.size) return flash('No se pudo generar el video');
       const ext = type.includes('mp4') ? 'mp4' : 'webm';
-      await shareOrDownload(blob, `mosaico-${mosaicId}.${ext}`, 'video');
+      await shareOrDownload(blob, `mosaico-pantalla-${mosaicId}.${ext}`, 'video');
     };
     mediaRecorder.start(250);
     recordingStartedAt = performance.now();
@@ -649,9 +742,10 @@ function startVideoCapture() {
       recordTime.textContent = formatElapsed(performance.now() - recordingStartedAt);
     }, 250);
     navigator.vibrate?.(35);
-    flash('Grabando · soltá el botón para terminar');
+    flash('Grabando pantalla · soltá el botón para terminar');
   } catch (err) {
     console.warn(err);
+    stopDisplayStream(stream);
     setRecordingUI(false);
     flash('No se pudo iniciar la grabación');
   }
@@ -666,6 +760,8 @@ function stopVideoCapture() {
   if (mediaRecorder?.state === 'recording') {
     mediaRecorder.stop();
     navigator.vibrate?.(20);
+  } else if (displayStream && !capturePointerDown) {
+    stopDisplayStream(displayStream);
   }
 }
 
@@ -679,33 +775,43 @@ saveBtn.addEventListener('pointerdown', (e) => {
   guardUIEvent(e);
   e.preventDefault();
   capturePointerId = e.pointerId;
+  capturePointerDown = true;
   captureLongPress = false;
   saveBtn.setPointerCapture?.(e.pointerId);
   cancelCaptureHold();
-  captureHoldTimer = setTimeout(() => {
+
+  // Debe iniciarse directamente desde el gesto del usuario para que Android/desktop
+  // pueda abrir el selector nativo de pantalla. Si el navegador no lo soporta, queda null.
+  displayStreamPromise = navigator.mediaDevices?.getDisplayMedia ? getScreenStreamFromGesture() : Promise.resolve(null);
+
+  captureHoldTimer = setTimeout(async () => {
     captureLongPress = true;
-    startVideoCapture();
+    const stream = await displayStreamPromise;
+    if (capturePointerDown && captureLongPress) await startVideoCapture(stream);
   }, 520);
 });
 saveBtn.addEventListener('pointerup', async (e) => {
   if (capturePointerId !== e.pointerId) return;
   guardUIEvent(e);
   e.preventDefault();
+  capturePointerDown = false;
   cancelCaptureHold();
+  const stream = await displayStreamPromise;
   if (captureLongPress) stopVideoCapture();
-  else await capturePhoto();
+  else await capturePhoto(stream);
   capturePointerId = null;
   captureLongPress = false;
   saveBtn.releasePointerCapture?.(e.pointerId);
 });
-saveBtn.addEventListener('pointercancel', (e) => {
+saveBtn.addEventListener('pointercancel', async (e) => {
   if (capturePointerId !== e.pointerId) return;
+  capturePointerDown = false;
   cancelCaptureHold();
   if (captureLongPress) stopVideoCapture();
+  else stopDisplayStream(await displayStreamPromise);
   capturePointerId = null;
   captureLongPress = false;
 });
-
 
 let flashTimer;
 function flash(message) {
