@@ -1,13 +1,10 @@
 # Arte Digital
 
-Sitio estático preparado para GitHub Pages.
+Sitio para GitHub Pages con dos experiencias Pano2VR:
 
-## Estructura
-- `index.html`: portada principal.
-- `styles.css`: estilos de la portada.
-- `mapamundi-preview.jpg`: imagen de portada.
-- `mapamundi/`: exportación completa de Pano2VR (panorama, audio, tiles y WebXR/VR).
+- `mapamundi/` — Mapamundi
+- `mipieza360/` — Mi pieza 360
 
-## Publicación
-Subir **todo el contenido de esta carpeta a la raíz del repositorio** usado por GitHub Pages.
-La ruta del recorrido es `./mapamundi/` y debe mantenerse en minúsculas.
+La portada está en `index.html` y usa `styles.css`, `mapamundi-preview.jpg` y `mipieza360-preview.jpg`.
+
+Para publicar, subir **el contenido de esta carpeta** a la raíz del repositorio de GitHub Pages.
