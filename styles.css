@@ -94,7 +94,10 @@ h1 {
   border: 1px solid var(--line);
   background: var(--panel);
 }
-.project-image { background: url("mapamundi-preview.jpg") center/cover no-repeat; min-height: 420px; }
+ .project-image { min-height: 420px; background-position: center; background-size: cover; background-repeat: no-repeat; }
+.project-image-mapamundi { background-image: url("mapamundi-preview.jpg"); }
+.project-image-mipieza { background-image: url("mipieza360-preview.jpg"); }
+.project-card + .project-card { margin-top: 34px; }
 .project-info { display: flex; flex-direction: column; justify-content: flex-end; padding: clamp(28px, 4vw, 54px); }
 .project-number { color: var(--muted); font-size: 12px; letter-spacing: .18em; }
 .project-info h3 { margin: 4px 0 14px; font-size: clamp(32px, 4vw, 52px); letter-spacing: -.04em; }
