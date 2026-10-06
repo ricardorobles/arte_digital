@@ -2,14 +2,126 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ARButton } from 'three/addons/webxr/ARButton.js';
 
-const PIECES = [
-  { src: './assets/piezas/pieza-01.jpg', name: 'Pieza 01', ratio: 1 },
-  { src: './assets/piezas/pieza-02.jpg', name: 'Pieza 02', ratio: 1 },
-  { src: './assets/piezas/pieza-03.jpg', name: 'Pieza 03', ratio: 1 },
-  { src: './assets/piezas/pieza-04.jpg', name: 'Pieza 04', ratio: 1 },
-  { src: './assets/piezas/pieza-05.jpg', name: 'Pieza 05', ratio: 1 },
-  { src: './assets/piezas/pieza-06.jpg', name: 'Pieza 06', ratio: 1 }
-];
+const FALLBACK_FILES = ['pieza-01.jpg','pieza-02.jpg','pieza-03.jpg','pieza-04.jpg','pieza-05.jpg','pieza-06.jpg'];
+const IMAGE_RE = /\.(png|jpe?g|webp)$/i;
+
+function prettyPieceName(filename) {
+  const stem = filename.replace(/\.[^.]+$/, '');
+  return stem.replace(/[-_]+/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function decodeXmlEntities(value) {
+  const el = document.createElement('textarea');
+  el.innerHTML = value;
+  return el.value;
+}
+
+function extractXmpDescription(buffer) {
+  try {
+    const bytes = new Uint8Array(buffer);
+    const decoder = new TextDecoder('utf-8', { fatal: false });
+
+    // Photoshop y otros editores suelen guardar "Description" como
+    // Dublin Core dc:description dentro de un paquete XMP del JPEG.
+    const startMarker = new TextEncoder().encode('<?xpacket');
+    const endMarker = new TextEncoder().encode('<?xpacket end=');
+
+    function findSequence(haystack, needle, from = 0) {
+      outer: for (let i = from; i <= haystack.length - needle.length; i++) {
+        for (let j = 0; j < needle.length; j++) {
+          if (haystack[i + j] !== needle[j]) continue outer;
+        }
+        return i;
+      }
+      return -1;
+    }
+
+    const start = findSequence(bytes, startMarker);
+    if (start < 0) return '';
+    const endStart = findSequence(bytes, endMarker, start);
+    const end = endStart >= 0 ? Math.min(bytes.length, endStart + 96) : Math.min(bytes.length, start + 256000);
+    const xmlChunk = decoder.decode(bytes.slice(start, end));
+
+    // Primera opción: parsear el XML correctamente por namespace.
+    const xmlEnd = xmlChunk.lastIndexOf('</x:xmpmeta>');
+    const xmlText = xmlEnd >= 0 ? xmlChunk.slice(0, xmlEnd + '</x:xmpmeta>'.length) : xmlChunk;
+    const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+    const dc = doc.getElementsByTagNameNS('http://purl.org/dc/elements/1.1/', 'description')[0];
+    if (dc) {
+      const lis = dc.getElementsByTagNameNS('http://www.w3.org/1999/02/22-rdf-syntax-ns#', 'li');
+      const text = (lis[0]?.textContent || dc.textContent || '').trim();
+      if (text) return text;
+    }
+
+    // Fallback tolerante para XMP ligeramente distinto.
+    const match = xmlText.match(/<dc:description[\s\S]*?<rdf:li[^>]*>([\s\S]*?)<\/rdf:li>[\s\S]*?<\/dc:description>/i);
+    return match ? decodeXmlEntities(match[1].replace(/<[^>]+>/g, '')).trim() : '';
+  } catch (err) {
+    console.warn('No se pudo leer XMP:', err);
+    return '';
+  }
+}
+
+async function readImageMetadataDescription(src) {
+  try {
+    const response = await fetch(src, { cache: 'no-store' });
+    if (!response.ok) return '';
+    const buffer = await response.arrayBuffer();
+    return extractXmpDescription(buffer);
+  } catch (err) {
+    console.warn('No se pudo leer la descripción embebida:', src, err);
+    return '';
+  }
+}
+
+async function loadPieceCatalog() {
+  let imageNames = [...FALLBACK_FILES];
+  try {
+    const host = location.hostname.toLowerCase();
+    if (host.endsWith('.github.io')) {
+      const owner = host.split('.')[0];
+      const parts = location.pathname.split('/').filter(Boolean);
+      const repo = parts[0] || `${owner}.github.io`;
+      const appIndex = parts.indexOf('mosaico-ar');
+      const relativeBase = appIndex >= 0 ? parts.slice(1, appIndex + 1).join('/') : 'mosaico-ar';
+      const apiPath = `${relativeBase ? relativeBase + '/' : ''}assets/piezas`;
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${apiPath}`, {
+        headers: { Accept: 'application/vnd.github+json' },
+        cache: 'no-store'
+      });
+      if (response.ok) {
+        const items = await response.json();
+        const images = items.filter((item) => item.type === 'file' && IMAGE_RE.test(item.name));
+        if (images.length) {
+          imageNames = images
+            .map((item) => item.name)
+            .sort((a,b) => a.localeCompare(b, undefined, { numeric:true, sensitivity:'base' }));
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('No se pudo leer automáticamente la carpeta de piezas:', err);
+  }
+
+  const catalog = imageNames.map((name) => ({
+    src: `./assets/piezas/${encodeURIComponent(name)}`,
+    filename: name,
+    name: prettyPieceName(name),
+    description: '',
+    ratio: 1
+  }));
+
+  // La descripción se toma directamente del metadato XMP de cada imagen.
+  // Así, subir una imagen nueva a GitHub es suficiente: no hace falta
+  // editar index.html, app.js ni crear un archivo .txt paralelo.
+  await Promise.all(catalog.map(async (piece) => {
+    piece.description = await readImageMetadataDescription(piece.src);
+  }));
+
+  return catalog;
+}
+
+const PIECES = await loadPieceCatalog();
 
 const BASE_SIZE = 0.72;
 const EPS = 0.004;
@@ -48,6 +160,10 @@ const scaleHandle = $('#scaleHandle');
 const depthHandle = $('#depthHandle');
 const padDeselect = $('#padDeselect');
 const padDelete = $('#padDelete');
+const infoToggle = $('#infoToggle');
+const descriptionCard = $('#descriptionCard');
+const descriptionTitle = $('#descriptionTitle');
+const descriptionText = $('#descriptionText');
 
 const mosaicId = String(Math.floor(1000 + Math.random() * 9000));
 mosaicCode.textContent = `#${mosaicId}`;
@@ -78,6 +194,8 @@ let recordedChunks = [];
 let recordingStream = null;
 let recordingStartedAt = 0;
 let recordingClock = null;
+let infoMode = false;
+let pendingDescriptionIndex = null;
 const recordTime = $('#recordTime');
 
 const scene = new THREE.Scene();
@@ -249,6 +367,36 @@ function updatePiecePosition(piece) {
   piece.position.copy(piece.userData.anchor).addScaledVector(normal, piece.userData.depth / 2 + EPS);
 }
 
+function showDescription(index) {
+  if (!infoMode || index == null || !PIECES[index]) {
+    descriptionCard.classList.add('hidden');
+    pendingDescriptionIndex = null;
+    return;
+  }
+  const item = PIECES[index];
+  pendingDescriptionIndex = index;
+  descriptionTitle.textContent = item.name;
+  descriptionText.textContent = item.description || 'Sin descripción adicional.';
+  descriptionCard.classList.remove('hidden');
+}
+
+function refreshDescription() {
+  if (!infoMode) return descriptionCard.classList.add('hidden');
+  if (selectedPiece) return showDescription(selectedPiece.userData.pieceIndex);
+  if (selectedIndex !== null) return showDescription(selectedIndex);
+  descriptionCard.classList.add('hidden');
+}
+
+infoToggle.addEventListener('click', (e) => {
+  guardUIEvent(e);
+  infoMode = !infoMode;
+  infoToggle.classList.toggle('active', infoMode);
+  infoToggle.setAttribute('aria-label', infoMode ? 'Desactivar descripciones' : 'Activar descripciones');
+  infoToggle.title = infoMode ? 'Ocultar descripciones' : 'Mostrar descripciones';
+  refreshDescription();
+  flash(infoMode ? 'Descripciones activadas' : 'Descripciones ocultas');
+});
+
 function selectPiece(piece, announce = true) {
   selectedPiece = piece;
   setPlacementSelection(null, false);
@@ -263,6 +411,7 @@ function selectPiece(piece, announce = true) {
   toolbox.classList.add('has-selection');
   toolboxTitle.textContent = 'EDITAR PIEZA';
   selectionLabel.textContent = `· ${PIECES[piece.userData.pieceIndex].name}`;
+  showDescription(piece.userData.pieceIndex);
   if (announce) flash(`${PIECES[piece.userData.pieceIndex].name} seleccionada`);
 }
 
@@ -276,6 +425,7 @@ function deselectPiece(announce = false) {
   selectionLabel.textContent = '· ninguna seleccionada';
   depthRange.value = String(currentDepth);
   scaleRange.value = String(currentScale);
+  refreshDescription();
   if (announce) flash('Modo nueva pieza');
 }
 
@@ -406,6 +556,7 @@ function setPlacementSelection(index, announce = true) {
   selectedIndex = index;
   document.querySelectorAll('.piece-button').forEach((el, idx) => el.classList.toggle('selected', index === idx));
   nonePieceBtn.classList.toggle('selected', index === null);
+  refreshDescription();
   if (announce) flash(index === null ? 'Ninguna obra seleccionada' : `${PIECES[index].name} lista para colocar`);
 }
 
@@ -465,6 +616,7 @@ function enterDesktop() {
   toolbox.classList.add('hidden');
   showTools.classList.remove('hidden');
   saveBtn.classList.remove('hidden');
+  infoToggle.classList.remove('hidden');
   resetView.classList.add('hidden');
   surfaceLabel.classList.remove('hidden');
   room.visible = true;
@@ -567,8 +719,8 @@ async function shareOrDownload(blob, filename, kind = 'archivo') {
   const file = new File([blob], filename, { type: blob.type || 'application/octet-stream' });
   try {
     if (navigator.share && navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'Mosaico AR' });
-      flash(kind === 'foto' ? 'Foto lista para guardar en Fotos' : 'Video listo para guardar o compartir');
+      await navigator.share({ files: [file], title: 'Mosaico AR', text: 'Mosaico AR · Arte Digital' });
+      flash(kind === 'foto' ? 'Elegí WhatsApp, Instagram u otra app para compartir' : 'Video listo para compartir');
       return;
     }
   } catch (err) {
@@ -742,7 +894,7 @@ async function startVideoCapture(screenStream = null) {
       recordTime.textContent = formatElapsed(performance.now() - recordingStartedAt);
     }, 250);
     navigator.vibrate?.(35);
-    flash('Grabando pantalla · soltá el botón para terminar');
+    flash('Grabando pantalla · tocá el botón rojo para detener');
   } catch (err) {
     console.warn(err);
     stopDisplayStream(stream);
@@ -780,35 +932,50 @@ saveBtn.addEventListener('pointerdown', (e) => {
   saveBtn.setPointerCapture?.(e.pointerId);
   cancelCaptureHold();
 
-  // Debe iniciarse directamente desde el gesto del usuario para que Android/desktop
-  // pueda abrir el selector nativo de pantalla. Si el navegador no lo soporta, queda null.
+  // Si ya estamos grabando, el siguiente toque funciona como STOP.
+  if (mediaRecorder?.state === 'recording') return;
+
+  // La captura de pantalla debe solicitarse desde un gesto real del usuario.
   displayStreamPromise = navigator.mediaDevices?.getDisplayMedia ? getScreenStreamFromGesture() : Promise.resolve(null);
 
+  // Pulsación larga: inicia video. Al soltar NO se detiene; se mantiene hasta otro toque.
   captureHoldTimer = setTimeout(async () => {
     captureLongPress = true;
     const stream = await displayStreamPromise;
     if (capturePointerDown && captureLongPress) await startVideoCapture(stream);
   }, 520);
 });
+
 saveBtn.addEventListener('pointerup', async (e) => {
   if (capturePointerId !== e.pointerId) return;
   guardUIEvent(e);
   e.preventDefault();
   capturePointerDown = false;
   cancelCaptureHold();
+
+  // Un toque mientras graba = STOP.
+  if (mediaRecorder?.state === 'recording') {
+    stopVideoCapture();
+    capturePointerId = null;
+    captureLongPress = false;
+    saveBtn.releasePointerCapture?.(e.pointerId);
+    return;
+  }
+
   const stream = await displayStreamPromise;
-  if (captureLongPress) stopVideoCapture();
-  else await capturePhoto(stream);
+  // Si la pulsación larga inició video, al soltar no hacemos nada: continúa grabando.
+  if (!captureLongPress) await capturePhoto(stream);
   capturePointerId = null;
   captureLongPress = false;
   saveBtn.releasePointerCapture?.(e.pointerId);
 });
+
 saveBtn.addEventListener('pointercancel', async (e) => {
   if (capturePointerId !== e.pointerId) return;
   capturePointerDown = false;
   cancelCaptureHold();
-  if (captureLongPress) stopVideoCapture();
-  else stopDisplayStream(await displayStreamPromise);
+  // Si la grabación ya empezó, no la detenemos por perder el puntero.
+  if (!captureLongPress && mediaRecorder?.state !== 'recording') stopDisplayStream(await displayStreamPromise);
   capturePointerId = null;
   captureLongPress = false;
 });
@@ -943,7 +1110,7 @@ padDelete.addEventListener('click', (e) => { guardUIEvent(e); deleteSelected(); 
 padDeselect.addEventListener('click', (e) => { guardUIEvent(e); deselectPiece(true); setPlacementSelection(null, false); });
 
 document.body.addEventListener('beforexrselect', (event) => {
-  if (event.target.closest?.('button, input, .piece-drawer, .drawer-toggle, .capture-floating, .transform-pad, .topbar')) {
+  if (event.target.closest?.('button, input, .piece-drawer, .drawer-toggle, .capture-floating, .transform-pad, .topbar, .description-card, .info-toggle')) {
     uiGuardUntil = performance.now() + 700;
     event.preventDefault();
   }
@@ -988,6 +1155,7 @@ renderer.xr.addEventListener('sessionstart', () => {
   toolbox.classList.add('hidden');
   showTools.classList.remove('hidden');
   saveBtn.classList.remove('hidden');
+  infoToggle.classList.remove('hidden');
   resetView.classList.add('hidden');
   surfaceLabel.classList.add('hidden');
   modeHelp.textContent = 'Mové el teléfono lentamente. Elegí una obra y tocá el aro para colocarla. Tocá una pieza colocada para editarla.';
@@ -1010,6 +1178,8 @@ renderer.xr.addEventListener('sessionend', () => {
   toolbox.classList.add('hidden');
   showTools.classList.add('hidden');
   saveBtn.classList.add('hidden');
+  infoToggle.classList.add('hidden');
+  descriptionCard.classList.add('hidden');
   deselectPiece(false);
 });
 

@@ -51,8 +51,15 @@
     <button id="drawerToggle" class="drawer-toggle hidden" type="button" aria-label="Abrir selector de obras" title="Abrir selector de obras">
       <span class="mosaic-icon" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
     </button>
-    <button id="saveBtn" class="capture-floating hidden" type="button" aria-label="Tocar para capturar pantalla; mantener presionado para grabar pantalla" title="Tocar: capturar pantalla · Mantener: grabar pantalla">
-      <span class="capture-core" aria-hidden="true"></span>
+
+    <button id="infoToggle" class="info-toggle hidden" type="button" aria-label="Activar descripciones" title="Mostrar descripciones">?</button>
+    <aside id="descriptionCard" class="description-card hidden" aria-live="polite">
+      <div id="descriptionTitle" class="description-title"></div>
+      <div id="descriptionText" class="description-text"></div>
+    </aside>
+
+    <button id="saveBtn" class="capture-floating hidden" type="button" aria-label="Tocar para compartir captura; mantener presionado para iniciar video" title="Tocar: compartir captura · Mantener: iniciar video">
+      <span class="share-glyph" aria-hidden="true">↗</span>
       <span id="recordTime" class="record-time" aria-hidden="true">00:00</span>
     </button>
 

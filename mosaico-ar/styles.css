@@ -344,3 +344,96 @@ body.ar-active .capture-floating { background: #d62828; }
   .capture-floating .capture-core { width: 39px; height: 39px; }
   .record-time { left: 67px; }
 }
+
+/* v10 · ayuda contextual + compartir */
+.info-toggle {
+  position: absolute;
+  z-index: 36;
+  top: max(66px, calc(env(safe-area-inset-top) + 54px));
+  right: max(16px, env(safe-area-inset-right));
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(17,17,17,.42);
+  background: rgba(247,246,242,.9);
+  color: #111;
+  display: grid;
+  place-items: center;
+  font: 500 20px/1 Montserrat, sans-serif;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 5px 18px rgba(0,0,0,.08);
+}
+.info-toggle.active {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+body.ar-active .info-toggle {
+  background: rgba(247,246,242,.88);
+  color: #111;
+}
+body.ar-active .info-toggle.active { background:#111; color:#fff; }
+
+.description-card {
+  position: absolute;
+  z-index: 35;
+  top: max(116px, calc(env(safe-area-inset-top) + 104px));
+  right: max(16px, env(safe-area-inset-right));
+  width: min(330px, calc(100vw - 32px));
+  padding: 14px 15px 15px;
+  background: rgba(247,246,242,.94);
+  border: 1px solid rgba(17,17,17,.2);
+  box-shadow: 0 12px 34px rgba(0,0,0,.12);
+  backdrop-filter: blur(14px);
+  pointer-events: none;
+}
+.description-title {
+  margin-bottom: 7px;
+  color: #111;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.description-text {
+  color: rgba(17,17,17,.78);
+  font-size: 12px;
+  line-height: 1.48;
+  font-weight: 400;
+}
+body.ar-active .description-card { background:rgba(247,246,242,.88); }
+
+.capture-floating .share-glyph {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  color: #fff;
+  font: 500 30px/1 Montserrat, sans-serif;
+  transform: translate(-1px, 1px);
+}
+.capture-floating.recording .share-glyph {
+  font-size: 0;
+}
+.capture-floating.recording .share-glyph::before {
+  content: '';
+  display: block;
+  width: 21px;
+  height: 21px;
+  border-radius: 4px;
+  background: #fff;
+}
+
+@media (max-width: 640px) {
+  .info-toggle {
+    top: max(60px, calc(env(safe-area-inset-top) + 50px));
+    right: max(10px, env(safe-area-inset-right));
+    width: 40px;
+    height: 40px;
+  }
+  .description-card {
+    top: max(108px, calc(env(safe-area-inset-top) + 98px));
+    right: max(10px, env(safe-area-inset-right));
+    width: min(300px, calc(100vw - 20px));
+  }
+}
