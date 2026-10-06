@@ -437,3 +437,43 @@ body.ar-active .description-card { background:rgba(247,246,242,.88); }
     width: min(300px, calc(100vw - 20px));
   }
 }
+
+
+/* v12 · tarjeta de descripción compacta y desplazable */
+.description-card {
+  width: min(300px, 30vw);
+  max-height: min(280px, 34vh);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  pointer-events: auto;
+  scrollbar-width: thin;
+}
+.description-text { white-space: pre-wrap; }
+@media (max-width: 640px) {
+  .description-card {
+    width: min(260px, calc(100vw - 78px));
+    max-height: 30vh;
+    right: max(10px, env(safe-area-inset-right));
+  }
+}
+
+/* v12 · disparador limpio, sin flecha */
+.capture-floating .capture-core {
+  display: block;
+  width: 42px;
+  height: 42px;
+  border: 2px solid rgba(255,255,255,.92);
+  border-radius: 50%;
+  background: transparent;
+}
+.capture-floating.recording .capture-core {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border-color: #fff;
+  background: #fff;
+}
+.capture-floating .share-glyph { display:none !important; }
+body.ar-active .capture-floating { display:none !important; }

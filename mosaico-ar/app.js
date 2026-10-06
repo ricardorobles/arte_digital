@@ -695,15 +695,6 @@ function renderCleanFrame() {
   if (selectedPiece) updateSelectionBox();
 }
 
-function dataURLToBlob(dataURL) {
-  const [head, data] = dataURL.split(',');
-  const mime = (head.match(/data:([^;]+)/) || [,'image/png'])[1];
-  const binary = atob(data);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return new Blob([bytes], { type: mime });
-}
-
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -715,118 +706,105 @@ function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 2500);
 }
 
-async function shareOrDownload(blob, filename, kind = 'archivo') {
-  const file = new File([blob], filename, { type: blob.type || 'application/octet-stream' });
-  try {
-    if (navigator.share && navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'Mosaico AR', text: 'Mosaico AR · Arte Digital' });
-      flash(kind === 'foto' ? 'Elegí WhatsApp, Instagram u otra app para compartir' : 'Video listo para compartir');
-      return;
+function wrapCanvasText(ctx, text, maxWidth) {
+  const words = String(text || '').split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
     }
-  } catch (err) {
-    if (err?.name === 'AbortError') return;
-    console.warn('No se pudo abrir compartir:', err);
   }
-  downloadBlob(blob, filename);
-  flash(`${kind === 'foto' ? 'Foto' : 'Video'} descargado`);
+  if (line) lines.push(line);
+  return lines;
 }
 
-async function requestScreenStream() {
-  if (!navigator.mediaDevices?.getDisplayMedia) return null;
-  if (displayStream?.active) return displayStream;
-  try {
-    displayStream = await navigator.mediaDevices.getDisplayMedia({
-      video: { frameRate: { ideal: 30, max: 60 } },
-      audio: false
-    });
-    displayStream.getVideoTracks()[0]?.addEventListener('ended', () => {
-      displayStream = null;
-      displayStreamPromise = null;
-      if (mediaRecorder?.state === 'recording') mediaRecorder.stop();
-    }, { once: true });
-    return displayStream;
-  } catch (err) {
-    if (err?.name !== 'AbortError' && err?.name !== 'NotAllowedError') console.warn('Captura de pantalla:', err);
-    displayStream = null;
-    displayStreamPromise = null;
-    return null;
+function drawDescriptionOnCanvas(ctx, width, height) {
+  if (!infoMode || descriptionCard.classList.contains('hidden')) return;
+  const title = descriptionTitle.textContent.trim();
+  const body = descriptionText.textContent.trim();
+  if (!title && !body) return;
+
+  const dpr = Math.max(1, Math.min(devicePixelRatio || 1, 2));
+  const pad = 16 * dpr;
+  const cardW = Math.min(300 * dpr, width * 0.34);
+  const maxH = Math.min(280 * dpr, height * 0.34);
+  const x = width - cardW - 16 * dpr;
+  const y = 116 * dpr;
+
+  ctx.save();
+  ctx.font = `${700 * dpr / dpr}px Montserrat, Arial, sans-serif`;
+  ctx.font = `${9 * dpr}px Montserrat, Arial, sans-serif`;
+  const titleLines = wrapCanvasText(ctx, title.toUpperCase(), cardW - pad * 2);
+  ctx.font = `${12 * dpr}px Montserrat, Arial, sans-serif`;
+  const bodyLines = wrapCanvasText(ctx, body, cardW - pad * 2);
+  const titleLineH = 14 * dpr;
+  const bodyLineH = 18 * dpr;
+  const desiredH = pad * 2 + titleLines.length * titleLineH + (titleLines.length ? 7*dpr : 0) + bodyLines.length * bodyLineH;
+  const cardH = Math.min(maxH, Math.max(64*dpr, desiredH));
+
+  ctx.fillStyle = 'rgba(247,246,242,0.94)';
+  ctx.strokeStyle = 'rgba(17,17,17,0.20)';
+  ctx.lineWidth = 1 * dpr;
+  ctx.fillRect(x, y, cardW, cardH);
+  ctx.strokeRect(x, y, cardW, cardH);
+
+  let ty = y + pad + 9*dpr;
+  ctx.fillStyle = '#111';
+  ctx.font = `700 ${9*dpr}px Montserrat, Arial, sans-serif`;
+  for (const line of titleLines) {
+    ctx.fillText(line, x + pad, ty);
+    ty += titleLineH;
   }
+  if (titleLines.length) ty += 5*dpr;
+
+  ctx.fillStyle = 'rgba(17,17,17,0.78)';
+  ctx.font = `400 ${12*dpr}px Montserrat, Arial, sans-serif`;
+  const maxLines = Math.max(0, Math.floor((y + cardH - pad - ty) / bodyLineH));
+  bodyLines.slice(0, maxLines).forEach((line) => {
+    ctx.fillText(line, x + pad, ty);
+    ty += bodyLineH;
+  });
+  ctx.restore();
 }
 
-function getScreenStreamFromGesture() {
-  if (displayStream?.active) return Promise.resolve(displayStream);
-  if (!displayStreamPromise) displayStreamPromise = requestScreenStream();
-  return displayStreamPromise;
-}
-
-function stopDisplayStream(stream = displayStream) {
-  stream?.getTracks?.().forEach((t) => t.stop());
-  if (stream === displayStream) {
-    displayStream = null;
-    displayStreamPromise = null;
-  }
-}
-
-async function captureFrameFromStream(stream) {
-  const track = stream?.getVideoTracks?.()[0];
-  if (!track) throw new Error('No hay pista de pantalla');
-
-  const video = document.createElement('video');
-  video.muted = true;
-  video.playsInline = true;
-  video.srcObject = stream;
-  await video.play();
-  if (!video.videoWidth || !video.videoHeight) {
-    await new Promise((resolve) => {
-      const done = () => resolve();
-      video.addEventListener('loadedmetadata', done, { once: true });
-      setTimeout(done, 500);
-    });
-  }
-  // Un pequeño margen permite que el sistema entregue un fotograma completo de la pantalla elegida.
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+function makeCompositeCanvas() {
+  renderCleanFrame();
+  const source = renderer.domElement;
   const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, video.videoWidth || innerWidth);
-  canvas.height = Math.max(1, video.videoHeight || innerHeight);
+  canvas.width = source.width;
+  canvas.height = source.height;
   const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  video.pause();
-  video.srcObject = null;
-  return await new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('No se generó la imagen')), 'image/png'));
+  ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+  drawDescriptionOnCanvas(ctx, canvas.width, canvas.height);
+  return canvas;
 }
 
-async function capturePhoto(screenStream = null) {
-  if (mediaRecorder?.state === 'recording') return;
-  let stream = screenStream;
+async function capturePhoto() {
+  if (mediaRecorder?.state === 'recording' || isAR) return;
   try {
-    if (!stream && navigator.mediaDevices?.getDisplayMedia) stream = await getScreenStreamFromGesture();
-    if (stream) {
-      const blob = await captureFrameFromStream(stream);
-      stopDisplayStream(stream);
-      await shareOrDownload(blob, `mosaico-pantalla-${mosaicId}.png`, 'foto');
-      return;
-    }
-
-    // Fallback para navegadores móviles sin Screen Capture API (especialmente algunos Safari/iOS).
-    renderCleanFrame();
-    const dataURL = renderer.domElement.toDataURL('image/png');
-    const blob = dataURLToBlob(dataURL);
-    await shareOrDownload(blob, `mosaico-${mosaicId}.png`, 'foto');
-    flash('Tu navegador no permite capturar toda la pantalla; se guardó la escena 3D');
+    const canvas = makeCompositeCanvas();
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob((b) => b ? resolve(b) : reject(new Error('No se generó la imagen')), 'image/png');
+    });
+    downloadBlob(blob, `mosaico-${mosaicId}.png`);
+    flash('Imagen guardada en la computadora');
   } catch (err) {
     console.warn(err);
-    stopDisplayStream(stream);
-    flash('No se pudo capturar la pantalla');
+    flash('No se pudo guardar la imagen');
   }
 }
 
 function chooseRecordingMime() {
   const options = [
-    'video/mp4;codecs=avc1.42E01E',
-    'video/mp4',
     'video/webm;codecs=vp9',
     'video/webm;codecs=vp8',
-    'video/webm'
+    'video/webm',
+    'video/mp4'
   ];
   return options.find((type) => window.MediaRecorder?.isTypeSupported?.(type)) || '';
 }
@@ -841,25 +819,40 @@ function formatElapsed(ms) {
 function setRecordingUI(active) {
   saveBtn.classList.toggle('recording', active);
   recordTime.setAttribute('aria-hidden', active ? 'false' : 'true');
+  saveBtn.setAttribute('aria-label', active ? 'Detener grabación' : 'Tocar para guardar imagen; mantener presionado para grabar video');
+  saveBtn.title = active ? 'STOP' : 'Tocar: guardar imagen · Mantener: grabar video';
   if (!active) recordTime.textContent = '00:00';
 }
 
-async function startVideoCapture(screenStream = null) {
-  if (mediaRecorder?.state === 'recording') return;
-  let stream = screenStream;
-  if (!stream) stream = await getScreenStreamFromGesture();
-  if (!stream) {
-    if (!renderer.domElement.captureStream || !window.MediaRecorder) {
-      flash('Este navegador no permite grabar la pantalla');
-      return;
-    }
-    stream = renderer.domElement.captureStream(30);
-    flash('La grabación de pantalla no está disponible; se graba la escena 3D');
+let captureCanvas = null;
+let captureCtx = null;
+let captureRaf = null;
+
+function paintCaptureFrame() {
+  if (!captureCanvas || !captureCtx) return;
+  renderCleanFrame();
+  captureCtx.clearRect(0, 0, captureCanvas.width, captureCanvas.height);
+  captureCtx.drawImage(renderer.domElement, 0, 0, captureCanvas.width, captureCanvas.height);
+  drawDescriptionOnCanvas(captureCtx, captureCanvas.width, captureCanvas.height);
+  captureRaf = requestAnimationFrame(paintCaptureFrame);
+}
+
+async function startVideoCapture() {
+  if (mediaRecorder?.state === 'recording' || isAR) return;
+  if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) {
+    flash('Este navegador no permite grabar video');
+    return;
   }
-  if (!window.MediaRecorder) return flash('Este navegador no permite grabar video');
 
   try {
-    recordingStream = stream;
+    renderCleanFrame();
+    captureCanvas = document.createElement('canvas');
+    captureCanvas.width = renderer.domElement.width;
+    captureCanvas.height = renderer.domElement.height;
+    captureCtx = captureCanvas.getContext('2d');
+    paintCaptureFrame();
+
+    recordingStream = captureCanvas.captureStream(30);
     const mimeType = chooseRecordingMime();
     mediaRecorder = mimeType ? new MediaRecorder(recordingStream, { mimeType }) : new MediaRecorder(recordingStream);
     recordedChunks = [];
@@ -870,22 +863,22 @@ async function startVideoCapture(screenStream = null) {
       stopRecordingClock();
       setRecordingUI(false);
     };
-    mediaRecorder.onstop = async () => {
+    mediaRecorder.onstop = () => {
       stopRecordingClock();
       setRecordingUI(false);
-      const wasDisplay = recordingStream === displayStream;
+      if (captureRaf) cancelAnimationFrame(captureRaf);
+      captureRaf = null;
+      captureCanvas = null;
+      captureCtx = null;
       recordingStream?.getTracks().forEach((t) => t.stop());
-      if (wasDisplay) {
-        displayStream = null;
-        displayStreamPromise = null;
-      }
       recordingStream = null;
       const type = mediaRecorder?.mimeType || mimeType || 'video/webm';
       const blob = new Blob(recordedChunks, { type });
       recordedChunks = [];
       if (!blob.size) return flash('No se pudo generar el video');
       const ext = type.includes('mp4') ? 'mp4' : 'webm';
-      await shareOrDownload(blob, `mosaico-pantalla-${mosaicId}.${ext}`, 'video');
+      downloadBlob(blob, `mosaico-${mosaicId}.${ext}`);
+      flash('Video guardado en la computadora');
     };
     mediaRecorder.start(250);
     recordingStartedAt = performance.now();
@@ -893,11 +886,13 @@ async function startVideoCapture(screenStream = null) {
     recordingClock = setInterval(() => {
       recordTime.textContent = formatElapsed(performance.now() - recordingStartedAt);
     }, 250);
-    navigator.vibrate?.(35);
-    flash('Grabando pantalla · tocá el botón rojo para detener');
+    flash('Grabando · tocá el botón rojo para STOP');
   } catch (err) {
     console.warn(err);
-    stopDisplayStream(stream);
+    if (captureRaf) cancelAnimationFrame(captureRaf);
+    captureRaf = null;
+    captureCanvas = null;
+    captureCtx = null;
     setRecordingUI(false);
     flash('No se pudo iniciar la grabación');
   }
@@ -909,12 +904,7 @@ function stopRecordingClock() {
 }
 
 function stopVideoCapture() {
-  if (mediaRecorder?.state === 'recording') {
-    mediaRecorder.stop();
-    navigator.vibrate?.(20);
-  } else if (displayStream && !capturePointerDown) {
-    stopDisplayStream(displayStream);
-  }
+  if (mediaRecorder?.state === 'recording') mediaRecorder.stop();
 }
 
 function cancelCaptureHold() {
@@ -926,23 +916,18 @@ saveBtn.addEventListener('contextmenu', (e) => e.preventDefault());
 saveBtn.addEventListener('pointerdown', (e) => {
   guardUIEvent(e);
   e.preventDefault();
+  if (isAR) return;
   capturePointerId = e.pointerId;
   capturePointerDown = true;
   captureLongPress = false;
   saveBtn.setPointerCapture?.(e.pointerId);
   cancelCaptureHold();
 
-  // Si ya estamos grabando, el siguiente toque funciona como STOP.
   if (mediaRecorder?.state === 'recording') return;
 
-  // La captura de pantalla debe solicitarse desde un gesto real del usuario.
-  displayStreamPromise = navigator.mediaDevices?.getDisplayMedia ? getScreenStreamFromGesture() : Promise.resolve(null);
-
-  // Pulsación larga: inicia video. Al soltar NO se detiene; se mantiene hasta otro toque.
   captureHoldTimer = setTimeout(async () => {
     captureLongPress = true;
-    const stream = await displayStreamPromise;
-    if (capturePointerDown && captureLongPress) await startVideoCapture(stream);
+    if (capturePointerDown) await startVideoCapture();
   }, 520);
 });
 
@@ -953,7 +938,6 @@ saveBtn.addEventListener('pointerup', async (e) => {
   capturePointerDown = false;
   cancelCaptureHold();
 
-  // Un toque mientras graba = STOP.
   if (mediaRecorder?.state === 'recording') {
     stopVideoCapture();
     capturePointerId = null;
@@ -962,20 +946,16 @@ saveBtn.addEventListener('pointerup', async (e) => {
     return;
   }
 
-  const stream = await displayStreamPromise;
-  // Si la pulsación larga inició video, al soltar no hacemos nada: continúa grabando.
-  if (!captureLongPress) await capturePhoto(stream);
+  if (!captureLongPress) await capturePhoto();
   capturePointerId = null;
   captureLongPress = false;
   saveBtn.releasePointerCapture?.(e.pointerId);
 });
 
-saveBtn.addEventListener('pointercancel', async (e) => {
+saveBtn.addEventListener('pointercancel', (e) => {
   if (capturePointerId !== e.pointerId) return;
   capturePointerDown = false;
   cancelCaptureHold();
-  // Si la grabación ya empezó, no la detenemos por perder el puntero.
-  if (!captureLongPress && mediaRecorder?.state !== 'recording') stopDisplayStream(await displayStreamPromise);
   capturePointerId = null;
   captureLongPress = false;
 });
@@ -1154,7 +1134,7 @@ renderer.xr.addEventListener('sessionstart', () => {
   intro.classList.add('hidden');
   toolbox.classList.add('hidden');
   showTools.classList.remove('hidden');
-  saveBtn.classList.remove('hidden');
+  saveBtn.classList.add('hidden');
   infoToggle.classList.remove('hidden');
   resetView.classList.add('hidden');
   surfaceLabel.classList.add('hidden');
