@@ -800,13 +800,15 @@ async function capturePhoto() {
 }
 
 function chooseRecordingMime() {
-  const options = [
-    'video/webm;codecs=vp9',
-    'video/webm;codecs=vp8',
-    'video/webm',
+  // Priorizamos MP4 para que el archivo sea compatible con reproductores,
+  // editores y redes sociales sin conversiones posteriores.
+  const mp4Options = [
+    'video/mp4;codecs=avc1.42E01E',
+    'video/mp4;codecs=avc1.4D401E',
+    'video/mp4;codecs=h264',
     'video/mp4'
   ];
-  return options.find((type) => window.MediaRecorder?.isTypeSupported?.(type)) || '';
+  return mp4Options.find((type) => window.MediaRecorder?.isTypeSupported?.(type)) || '';
 }
 
 function formatElapsed(ms) {
@@ -854,7 +856,17 @@ async function startVideoCapture() {
 
     recordingStream = captureCanvas.captureStream(30);
     const mimeType = chooseRecordingMime();
-    mediaRecorder = mimeType ? new MediaRecorder(recordingStream, { mimeType }) : new MediaRecorder(recordingStream);
+    if (!mimeType) {
+      recordingStream?.getTracks().forEach((t) => t.stop());
+      recordingStream = null;
+      if (captureRaf) cancelAnimationFrame(captureRaf);
+      captureRaf = null;
+      captureCanvas = null;
+      captureCtx = null;
+      flash('Este navegador no permite grabar directamente en MP4');
+      return;
+    }
+    mediaRecorder = new MediaRecorder(recordingStream, { mimeType });
     recordedChunks = [];
     mediaRecorder.ondataavailable = (e) => { if (e.data?.size) recordedChunks.push(e.data); };
     mediaRecorder.onerror = (e) => {
@@ -872,13 +884,12 @@ async function startVideoCapture() {
       captureCtx = null;
       recordingStream?.getTracks().forEach((t) => t.stop());
       recordingStream = null;
-      const type = mediaRecorder?.mimeType || mimeType || 'video/webm';
+      const type = mediaRecorder?.mimeType || mimeType || 'video/mp4';
       const blob = new Blob(recordedChunks, { type });
       recordedChunks = [];
       if (!blob.size) return flash('No se pudo generar el video');
-      const ext = type.includes('mp4') ? 'mp4' : 'webm';
-      downloadBlob(blob, `mosaico-${mosaicId}.${ext}`);
-      flash('Video guardado en la computadora');
+      downloadBlob(blob, `mosaico-${mosaicId}.mp4`);
+      flash('Video MP4 guardado en la computadora');
     };
     mediaRecorder.start(250);
     recordingStartedAt = performance.now();
@@ -913,6 +924,8 @@ function cancelCaptureHold() {
 }
 
 saveBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+let captureStopClick = false;
+
 saveBtn.addEventListener('pointerdown', (e) => {
   guardUIEvent(e);
   e.preventDefault();
@@ -920,10 +933,18 @@ saveBtn.addEventListener('pointerdown', (e) => {
   capturePointerId = e.pointerId;
   capturePointerDown = true;
   captureLongPress = false;
+  captureStopClick = false;
   saveBtn.setPointerCapture?.(e.pointerId);
   cancelCaptureHold();
 
-  if (mediaRecorder?.state === 'recording') return;
+  // Si ya estamos grabando, este NUEVO toque funciona como STOP.
+  // Soltar el botón después de iniciar una grabación por pulsación larga
+  // ya no la detiene.
+  if (mediaRecorder?.state === 'recording') {
+    captureStopClick = true;
+    stopVideoCapture();
+    return;
+  }
 
   captureHoldTimer = setTimeout(async () => {
     captureLongPress = true;
@@ -938,17 +959,26 @@ saveBtn.addEventListener('pointerup', async (e) => {
   capturePointerDown = false;
   cancelCaptureHold();
 
-  if (mediaRecorder?.state === 'recording') {
-    stopVideoCapture();
+  // El toque usado para STOP termina aquí.
+  if (captureStopClick) {
+    capturePointerId = null;
+    captureLongPress = false;
+    captureStopClick = false;
+    saveBtn.releasePointerCapture?.(e.pointerId);
+    return;
+  }
+
+  // Si la grabación arrancó por mantener presionado, soltar NO la detiene.
+  // Queda activa hasta volver a tocar el botón rojo.
+  if (captureLongPress) {
     capturePointerId = null;
     captureLongPress = false;
     saveBtn.releasePointerCapture?.(e.pointerId);
     return;
   }
 
-  if (!captureLongPress) await capturePhoto();
+  await capturePhoto();
   capturePointerId = null;
-  captureLongPress = false;
   saveBtn.releasePointerCapture?.(e.pointerId);
 });
 
