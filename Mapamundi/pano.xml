@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tour apprev="18126" appversion="6.1.16" start="node4">
+  <panorama id="node4">
+    <input levelingpitch="8" width="2000" overlap="1" leveltileurl="tiles/node4/cf_%c/l_%l/c_%x/tile_%y.jpg" leveltilesize="1800" levelingroll="8" levelbias="0.400" levelbiashidpi="1.000" height="2000">
+      <level preload="0" width="2000" height="2000" predecode="0"/>
+      <level preload="1" width="1000" height="1000" predecode="1"/>
+      <preview strip="1" color="0x808080"/>
+    </input>
+    <view pannorth="-231.764" fovmode="0">
+      <start projection="4" pan="132.493" tilt="8.6447" fov="96.7443"/>
+      <flyin projection="9" pan="0" tilt="-90" fov="170"/>
+      <min pan="0" tilt="-90" fovpixel="2"/>
+      <max fovfisheye="360" scaletofit="1" fovstereographic="270" pan="360" tilt="90" fov="120"/>
+    </view>
+    <userdata info="" author="" title="" datetime="10/9/20 01:48" tags="MAPA MUNDO" latitude="" source="" description="" comment="" nodeid="node4" copyright="" customnodeid="" longitude="" heading="-231.764"/>
+    <hotspots width="180" wordwrap="1" height="20">
+      <label width="180" borderalpha="1" textcolor="0x000000" wordwrap="1" bordercolor="0x000000" border="1" borderradius="1" textalpha="1" backgroundalpha="1" height="20" enabled="1" background="1" backgroundcolor="0xffffff"/>
+      <polystyle borderalpha="1" bordercolor="0x0000ff" handcursor="1" mode="0" backgroundalpha="0.25098" backgroundcolor="0x0000ff"/>
+      <hotspot title="" url="images/Alfaro.png" description="" pan="-17.49" tilt="-15.16" skinid="ht_image" target="" id="Point01"/>
+      <hotspot title="" url="images/Abuelo.png" description="" pan="-209.9" tilt="4.52" skinid="ht_image" target="" id="Point02"/>
+      <hotspot title="" url="images/Escher.png" description="" pan="-64.64" tilt="-7.34" skinid="ht_image" target="" id="Point03"/>
+      <hotspot title="" url="images/Ricardo.png" description="" pan="-37.26" tilt="-45.1" skinid="ht_image" target="" id="Point04"/>
+      <hotspot title="" url="images/Galeano.png" description="" pan="-44.46" tilt="29.6" skinid="ht_image" target="" id="Point05"/>
+    </hotspots>
+    <media>
+      <sound ambientlevel="0.000" pansize="10.000" loop="0" nodechangekeep="0" field="35.000" level="1.000" mode="5" pan="-221.490" tilt="51.060" tiltsize="10.000" startmutedmobile="0" id="Element02">
+        <source url="media/italia.mp3"/>
+      </sound>
+      <sound ambientlevel="0.000" pansize="10.000" loop="0" nodechangekeep="0" field="32.000" level="1.000" mode="5" pan="-286.660" tilt="13.180" tiltsize="10.000" startmutedmobile="0" id="Element03">
+        <source url="media/india.mp3"/>
+      </sound>
+      <sound ambientlevel="0.000" pansize="10.000" loop="0" nodechangekeep="0" field="60.000" level="1.000" mode="5" pan="-231.310" tilt="-4.730" tiltsize="10.000" startmutedmobile="0" id="Element05">
+        <source url="media/africa.mp3"/>
+      </sound>
+      <sound ambientlevel="0.000" pansize="10.000" loop="0" nodechangekeep="0" field="50.000" level="0.700" mode="5" pan="-145.880" tilt="-31.120" tiltsize="10.000" startmutedmobile="0" id="Element06">
+        <source url="media/tango.mp3"/>
+      </sound>
+      <sound ambientlevel="0.000" pansize="10.000" loop="0" nodechangekeep="0" field="30.000" level="0.400" mode="5" pan="-112.840" tilt="11.010" tiltsize="10.000" startmutedmobile="0" id="Element04">
+        <source url="media/mariachi.mp3"/>
+      </sound>
+      <sound ambientlevel="0.000" pansize="10.000" loop="0" nodechangekeep="0" field="40.000" level="1.000" mode="5" pan="-334.760" tilt="-35.400" tiltsize="10.000" startmutedmobile="0" id="Element07">
+        <source url="media/Australia.mp3"/>
+      </sound>
+      <sound ambientlevel="0.000" pansize="10.000" loop="0" nodechangekeep="0" field="40.000" level="1.000" mode="5" pan="-346.820" tilt="31.020" tiltsize="10.000" startmutedmobile="0" id="Element08">
+        <source url="media/flute.mp3"/>
+      </sound>
+      <sound ambientlevel="0.000" pansize="10.000" loop="0" nodechangekeep="0" field="40.000" level="1.000" mode="5" pan="-310.220" tilt="58.970" tiltsize="10.000" startmutedmobile="0" id="Element01">
+        <source url="media/Rusia.mp3"/>
+      </sound>
+      <sound ambientlevel="0.000" pansize="10.000" loop="0" nodechangekeep="0" field="50.000" level="1.000" mode="5" pan="-255.190" tilt="-83.210" tiltsize="10.000" startmutedmobile="0" id="Element09">
+        <source url="media/Viento.mp3"/>
+      </sound>
+      <sound ambientlevel="0.000" pansize="10.000" loop="0" nodechangekeep="0" field="40.000" level="0.700" mode="5" pan="-86.250" tilt="52.420" tiltsize="10.000" startmutedmobile="0" id="Element10">
+        <source url="media/jazz.mp3"/>
+      </sound>
+      <sound ambientlevel="0.000" pansize="10.000" loop="0" nodechangekeep="0" field="40.000" level="0.900" mode="5" pan="-160.450" tilt="7.130" tiltsize="10.000" startmutedmobile="0" id="Element11">
+        <source url="media/brasil.mp3"/>
+      </sound>
+      <sound ambientlevel="0.000" pansize="10.000" loop="0" nodechangekeep="0" field="40.000" level="0.500" mode="5" pan="-57.130" tilt="-20.180" tiltsize="10.000" startmutedmobile="0" id="Element12">
+        <source url="media/Olas.mp3"/>
+      </sound>
+    </media>
+    <transition zoomafterinfov="90" zoomin="0" zoomfov="20" softedge="0" zoomafteroutfov="20" zoomoutpause="1" type="crossdissolve" zoomout="0" zoomspeed="2" enabled="1" blendtime="1" blendcolor="0x000000"/>
+    <animation animsequence="Animation01" useinautorotation="0" syncanimationwithvideo="0"/>
+    <control speedwheel="1" simulatemass="1" lockedwheel="0" invertcontrol="1" sensitivity="8" contextfullscreen="1" dblclickfullscreen="0" invertwheel="0" lockedkeyboard="0" rubberband="0" lockedmouse="0" lockedkeyboardzoom="0" contextprojections="0" hideabout="0" contextvr="1"/>
+  </panorama>
+  <masternode>
+    <userdata info="" author="" title="" datetime="" tags="" latitude="" source="" description="" comment="" nodeid="master" copyright="" customnodeid="" longitude="" heading="0"/>
+  </masternode>
+</tour>
