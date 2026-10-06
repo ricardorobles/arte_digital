@@ -16,11 +16,11 @@ const EPS = 0.004;
 const $ = (s) => document.querySelector(s);
 const stage = $('#stage');
 const intro = $('#intro');
-const toolbox = $('#toolbox');
-const showTools = $('#showTools');
+const toolbox = $('#pieceDrawer');
+const showTools = $('#drawerToggle');
 const pieceStrip = $('#pieceStrip');
 const startDesktop = $('#startDesktop');
-const closeTools = $('#closeTools');
+const closeTools = $('#drawerClose');
 const depthRange = $('#depthRange');
 const depthOutput = $('#depthOutput');
 const scaleRange = $('#scaleRange');
@@ -410,8 +410,8 @@ nonePieceBtn.addEventListener('click', (e) => {
 buildPieceButtons();
 
 function updateOutputs() {
-  depthOutput.textContent = `${Math.round(Number(depthRange.value) * 100)} cm`;
-  scaleOutput.textContent = `${Math.round(Number(scaleRange.value) * 100)}%`;
+  depthOutput.textContent = `${Math.round(currentDepth * 100)} cm`;
+  scaleOutput.textContent = `${Math.round(currentScale * 100)}%`;
 }
 
 depthRange.addEventListener('input', () => {
@@ -439,8 +439,10 @@ function enterDesktop() {
   controls.enabled = true;
   resetCamera();
   intro.classList.add('hidden');
-  toolbox.classList.remove('hidden');
-  resetView.classList.remove('hidden');
+  toolbox.classList.add('hidden');
+  showTools.classList.remove('hidden');
+  saveBtn.classList.remove('hidden');
+  resetView.classList.add('hidden');
   surfaceLabel.classList.remove('hidden');
   room.visible = true;
   modeHelp.textContent = 'Elegí una obra para colocarla. Tocá una pieza colocada para editarla con el control circular.';
@@ -577,7 +579,7 @@ function guardUIEvent(e) {
   e.stopPropagation?.();
 }
 
-document.querySelectorAll('button, input, .toolbox, .transform-pad').forEach((el) => {
+document.querySelectorAll('button, input, .piece-drawer, .transform-pad').forEach((el) => {
   el.addEventListener('pointerdown', guardUIEvent, { passive: true });
   el.addEventListener('touchstart', guardUIEvent, { passive: true });
 });
@@ -601,7 +603,11 @@ function adjustSelectedRotation(delta) {
 
 function adjustSelectedScale(delta) {
   if (!selectedPiece) return;
-  const next = THREE.MathUtils.clamp(selectedPiece.userData.scale + delta * 0.006, 0.40, 2.20);
+  // Escala multiplicativa sin límites mínimos ni máximos prefijados.
+  // Al arrastrar hacia un lado crece y hacia el otro se reduce de forma continua,
+  // manteniendo siempre una escala positiva sin imponer topes artificiales.
+  const factor = Math.exp(delta * 0.008);
+  const next = selectedPiece.userData.scale * factor;
   selectedPiece.userData.scale = next;
   currentScale = next;
   scaleRange.value = String(next);
@@ -656,7 +662,7 @@ padDelete.addEventListener('click', (e) => { guardUIEvent(e); deleteSelected(); 
 padDeselect.addEventListener('click', (e) => { guardUIEvent(e); deselectPiece(true); setPlacementSelection(null, false); });
 
 document.body.addEventListener('beforexrselect', (event) => {
-  if (event.target.closest?.('button, input, .toolbox, .transform-pad, .topbar')) {
+  if (event.target.closest?.('button, input, .piece-drawer, .drawer-toggle, .save-floating, .transform-pad, .topbar')) {
     uiGuardUntil = performance.now() + 700;
     event.preventDefault();
   }
@@ -698,7 +704,9 @@ renderer.xr.addEventListener('sessionstart', () => {
   renderer.setClearColor(0x000000, 0);
   room.visible = false;
   intro.classList.add('hidden');
-  toolbox.classList.remove('hidden');
+  toolbox.classList.add('hidden');
+  showTools.classList.remove('hidden');
+  saveBtn.classList.remove('hidden');
   resetView.classList.add('hidden');
   surfaceLabel.classList.add('hidden');
   modeHelp.textContent = 'Mové el teléfono lentamente. Elegí una obra y tocá el aro para colocarla. Tocá una pieza colocada para editarla.';
@@ -718,6 +726,9 @@ renderer.xr.addEventListener('sessionend', () => {
   hitTestSourceRequested = false;
   hitTestSource = null;
   room.visible = true;
+  toolbox.classList.add('hidden');
+  showTools.classList.add('hidden');
+  saveBtn.classList.add('hidden');
   deselectPiece(false);
 });
 

@@ -42,52 +42,25 @@
       <p class="hint">En 3D: tocá una pieza para editarla y arrastrala para moverla. En AR: tocá una pieza, modificá tamaño/profundidad o elegí REUBICAR.</p>
     </section>
 
-    <aside id="toolbox" class="toolbox hidden" aria-label="Herramientas del mosaico">
-      <div class="toolbox-head">
-        <div>
-          <span id="toolboxTitle">NUEVA PIEZA</span>
-          <span id="selectionLabel" class="selection-label">· ninguna seleccionada</span>
-        </div>
-        <button id="closeTools" class="icon-button" type="button" aria-label="Ocultar herramientas">×</button>
-      </div>
-
-      <div class="piece-picker-row">
-        <button id="nonePieceBtn" class="none-piece selected" type="button">NINGUNA</button>
-        <div id="pieceStrip" class="piece-strip" role="list"></div>
-      </div>
-
-      <div class="controls-grid">
-        <label class="control">
-          <span>PROFUNDIDAD</span>
-          <div class="range-row">
-            <input id="depthRange" type="range" min="0.01" max="0.20" value="0.05" step="0.01" />
-            <output id="depthOutput">5 cm</output>
-          </div>
-        </label>
-
-        <label class="control">
-          <span>TAMAÑO</span>
-          <div class="range-row">
-            <input id="scaleRange" type="range" min="0.40" max="2.20" value="1" step="0.05" />
-            <output id="scaleOutput">100%</output>
-          </div>
-        </label>
-      </div>
-
-      <div id="editRow" class="edit-row hidden">
-        <button id="deleteBtn" class="button danger" type="button">BORRAR PIEZA</button>
-        <button id="deselectBtn" class="button ghost" type="button">DESELECCIONAR</button>
-      </div>
-
-      <div class="actions-row">
-        <button id="undoBtn" class="button ghost" type="button">DESHACER</button>
-        <button id="clearBtn" class="button ghost" type="button">LIMPIAR</button>
-        <button id="saveBtn" class="button ghost" type="button">GUARDAR</button>
-        <button id="finishBtn" class="button dark" type="button">VER OBRA</button>
-      </div>
-
-      <p id="modeHelp" class="mode-help">Tocá la pared o el piso para colocar. Tocá una pieza para seleccionarla y arrastrala para moverla.</p>
+    <aside id="pieceDrawer" class="piece-drawer hidden" aria-label="Selector de piezas">
+      <button id="drawerClose" class="drawer-close" type="button" aria-label="Cerrar selector">×</button>
+      <button id="nonePieceBtn" class="none-piece selected" type="button">NINGUNA</button>
+      <div id="pieceStrip" class="piece-strip" role="list"></div>
     </aside>
+
+    <button id="drawerToggle" class="drawer-toggle hidden" type="button" aria-label="Abrir selector de piezas">PIEZAS</button>
+    <button id="saveBtn" class="save-floating hidden" type="button">GUARDAR</button>
+
+    <div class="legacy-controls" aria-hidden="true">
+      <input id="depthRange" type="range" min="0.01" max="0.20" value="0.05" step="0.01" tabindex="-1" />
+      <output id="depthOutput">5 cm</output>
+      <input id="scaleRange" type="hidden" value="1" tabindex="-1" />
+      <output id="scaleOutput">100%</output>
+      <span id="toolboxTitle"></span><span id="selectionLabel"></span>
+      <div id="editRow"></div><button id="deleteBtn" type="button"></button><button id="deselectBtn" type="button"></button>
+      <button id="undoBtn" type="button"></button><button id="clearBtn" type="button"></button><button id="finishBtn" type="button"></button>
+      <span id="modeHelp"></span>
+    </div>
 
     <div id="transformPad" class="transform-pad hidden" aria-label="Control de transformación de pieza">
       <div class="pad-halo"></div>
@@ -103,7 +76,6 @@
       <div class="pad-label pad-label-center">MOVER</div>
     </div>
 
-    <button id="showTools" class="show-tools hidden" type="button">EDITAR MOSAICO</button>
     <button id="resetView" class="reset-view hidden" type="button">REUBICAR VISTA</button>
 
     <div id="surfaceLabel" class="surface-label hidden">PARED + PISO · ENTORNO DE PRUEBA</div>
