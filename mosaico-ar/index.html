@@ -34,17 +34,20 @@
     <section id="intro" class="intro" aria-live="polite">
       <p class="eyebrow">OBRA INTERACTIVA</p>
       <h1>Construí tu propio mosaico.</h1>
-      <p class="lead">Probalo primero en una sala virtual: una pared y un piso blancos donde podés componer con las piezas y sus distintas profundidades.</p>
+      <p class="lead">Probalo primero en una sala virtual: una pared y un piso blancos donde podés componer, seleccionar y editar cada pieza.</p>
       <div class="intro-actions">
         <button id="startDesktop" class="button primary" type="button">ENTRAR AL ENTORNO 3D</button>
         <div id="arButtonMount" class="ar-mount"></div>
       </div>
-      <p class="hint">En celular: tocá la pared o el piso para colocar piezas. Arrastrá para mirar alrededor y pellizcá para acercarte.</p>
+      <p class="hint">En 3D: tocá una pieza para editarla y arrastrala para moverla. En AR: tocá una pieza, modificá tamaño/profundidad o elegí REUBICAR.</p>
     </section>
 
     <aside id="toolbox" class="toolbox hidden" aria-label="Herramientas del mosaico">
       <div class="toolbox-head">
-        <span>PIEZAS</span>
+        <div>
+          <span id="toolboxTitle">NUEVA PIEZA</span>
+          <span id="selectionLabel" class="selection-label">· ninguna seleccionada</span>
+        </div>
         <button id="closeTools" class="icon-button" type="button" aria-label="Ocultar herramientas">×</button>
       </div>
 
@@ -60,12 +63,18 @@
         </label>
 
         <label class="control">
-          <span>ESCALA</span>
+          <span>TAMAÑO</span>
           <div class="range-row">
-            <input id="scaleRange" type="range" min="0.55" max="1.80" value="1" step="0.05" />
+            <input id="scaleRange" type="range" min="0.40" max="2.20" value="1" step="0.05" />
             <output id="scaleOutput">100%</output>
           </div>
         </label>
+      </div>
+
+      <div id="editRow" class="edit-row hidden">
+        <button id="relocateBtn" class="button ghost" type="button">REUBICAR</button>
+        <button id="deleteBtn" class="button danger" type="button">BORRAR PIEZA</button>
+        <button id="deselectBtn" class="button ghost" type="button">NUEVA PIEZA</button>
       </div>
 
       <div class="actions-row">
@@ -75,7 +84,7 @@
         <button id="finishBtn" class="button dark" type="button">VER OBRA</button>
       </div>
 
-      <p id="modeHelp" class="mode-help">Tocá la pared o el piso para colocar. Arrastrá para mirar alrededor y pellizcá para acercarte.</p>
+      <p id="modeHelp" class="mode-help">Tocá la pared o el piso para colocar. Tocá una pieza para seleccionarla y arrastrala para moverla.</p>
     </aside>
 
     <button id="showTools" class="show-tools hidden" type="button">EDITAR MOSAICO</button>

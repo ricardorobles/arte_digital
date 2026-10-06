@@ -1,14 +1,15 @@
-# Mosaico AR — Arte Digital
+# Mosaico AR · Arte Digital
 
-Prototipo interactivo de Ricardo Robles.
+Versión 3.
 
-## Dos formas de usarlo
+## Interacción
+- Entorno 3D: tocar una pieza para seleccionarla; arrastrarla sobre su pared/piso para moverla.
+- Profundidad y tamaño se editan en vivo sobre la pieza seleccionada.
+- `REUBICAR`: permite cambiar la pieza entre pared/piso (3D) o llevarla a una nueva superficie detectada (AR).
+- `BORRAR PIEZA`: elimina únicamente la seleccionada.
+- `NUEVA PIEZA`: sale del modo edición y permite colocar otra tesela.
 
-1. **Entorno 3D de prueba**: funciona en computadora y celular. Presenta una sala mínima con piso y pared blancos. Tocá/clic sobre cualquiera de las dos superficies para colocar piezas. Arrastrá para orbitar y usá rueda/pinch para zoom.
-2. **Realidad aumentada**: en navegadores/dispositivos compatibles con WebXR, permite detectar superficies reales y colocar piezas.
+## AR
+Se corrigió el fondo opaco del DOM overlay durante una sesión WebXR. En AR, `body`, `#app` y `#stage` pasan a fondo transparente para permitir el passthrough de cámara del navegador.
 
-## Publicación
-
-La carpeta `mosaico-ar` puede subirse directamente dentro del repositorio de GitHub Pages de Arte Digital. Debe conservarse completa, incluyendo `assets/piezas/`.
-
-El proyecto usa Three.js desde CDN mediante `importmap`; no requiere compilación ni npm.
+La realidad aumentada requiere HTTPS y un navegador/dispositivo que exponga `immersive-ar` + `hit-test`. Si no están disponibles, el botón lo indica.
