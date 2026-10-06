@@ -1,10 +1,13 @@
-# Arte Digital
+# Arte Digital — 3 proyectos
 
-Sitio para GitHub Pages con dos experiencias Pano2VR:
+Sitio listo para GitHub Pages.
 
-- `mapamundi/` — Mapamundi
-- `mipieza360/` — Mi pieza 360
+## Estructura
+- `mapamundi/`: experiencia Pano2VR 360° / VR.
+- `mipieza360/`: experiencia Pano2VR 360° con sonido / VR.
+- `mundo-ar/`: visor 3D + realidad aumentada con `<model-viewer>`.
 
-La portada está en `index.html` y usa `styles.css`, `mapamundi-preview.jpg` y `mipieza360-preview.jpg`.
+## Publicación
+Subir **el contenido de esta carpeta** a la raíz del repositorio de GitHub Pages.
 
-Para publicar, subir **el contenido de esta carpeta** a la raíz del repositorio de GitHub Pages.
+La experiencia AR usa `Mundo.glb` y requiere HTTPS (GitHub Pages ya lo provee). En iPhone, `<model-viewer>` genera el USDZ de Quick Look automáticamente al activar AR; en Android prioriza WebXR y luego Scene Viewer según disponibilidad.

@@ -97,6 +97,7 @@ h1 {
  .project-image { min-height: 420px; background-position: center; background-size: cover; background-repeat: no-repeat; }
 .project-image-mapamundi { background-image: url("mapamundi-preview.jpg"); }
 .project-image-mipieza { background-image: url("mipieza360-preview.jpg"); }
+.project-image-mundo { background-image: url("mundo-ar-preview.jpg"); }
 .project-card + .project-card { margin-top: 34px; }
 .project-info { display: flex; flex-direction: column; justify-content: flex-end; padding: clamp(28px, 4vw, 54px); }
 .project-number { color: var(--muted); font-size: 12px; letter-spacing: .18em; }
@@ -113,8 +114,12 @@ footer {
   color: var(--muted);
   font-size: 12px;
 }
-@media (max-width: 780px) {
+@media (max-width: 900px) {
+  nav { gap: 14px; }
   nav a:first-child { display: none; }
+}
+@media (max-width: 780px) {
+  nav a:not(:last-child) { display: none; }
   .hero { min-height: 66vh; }
   .project-card { grid-template-columns: 1fr; }
   .project-image { min-height: 55vw; }
