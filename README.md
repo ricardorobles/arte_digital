@@ -2,16 +2,12 @@
 
 Sitio estático preparado para GitHub Pages.
 
+## Estructura
+- `index.html`: portada principal.
+- `styles.css`: estilos de la portada.
+- `mapamundi-preview.jpg`: imagen de portada.
+- `mapamundi/`: exportación completa de Pano2VR (panorama, audio, tiles y WebXR/VR).
+
 ## Publicación
-1. Crear o abrir el repositorio `arte-digital`.
-2. Subir **todo el contenido de esta carpeta a la raíz** del repositorio.
-3. Ir a `Settings > Pages`.
-4. En `Build and deployment`, elegir `Deploy from a branch`.
-5. Seleccionar `main` y `/ (root)`.
-6. Guardar.
-
-La portada se publica en:
-`https://TU-USUARIO.github.io/arte-digital/`
-
-El recorrido Mapamundi se publica en:
-`https://TU-USUARIO.github.io/arte-digital/mapamundi/`
+Subir **todo el contenido de esta carpeta a la raíz del repositorio** usado por GitHub Pages.
+La ruta del recorrido es `./mapamundi/` y debe mantenerse en minúsculas.
