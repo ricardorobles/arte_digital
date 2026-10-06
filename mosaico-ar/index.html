@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <meta name="theme-color" content="#f7f6f2" />
   <meta name="description" content="Mosaico AR — obra interactiva de Arte Digital." />
   <title>Mosaico AR · Arte Digital</title>
@@ -10,6 +10,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+    }
+  }
+  </script>
 </head>
 <body>
   <div id="app">
@@ -26,12 +34,12 @@
     <section id="intro" class="intro" aria-live="polite">
       <p class="eyebrow">OBRA INTERACTIVA</p>
       <h1>Construí tu propio mosaico.</h1>
-      <p class="lead">Elegí una pieza, ajustá su profundidad y colocala sobre una superficie. Cada composición es única.</p>
+      <p class="lead">Probalo primero en una sala virtual: una pared y un piso blancos donde podés componer con las piezas y sus distintas profundidades.</p>
       <div class="intro-actions">
-        <button id="startDesktop" class="button primary" type="button">PROBAR EN 3D</button>
+        <button id="startDesktop" class="button primary" type="button">ENTRAR AL ENTORNO 3D</button>
         <div id="arButtonMount" class="ar-mount"></div>
       </div>
-      <p class="hint">En un teléfono compatible, usá AR para colocar las piezas sobre una pared o el piso.</p>
+      <p class="hint">En celular: tocá la pared o el piso para colocar piezas. Arrastrá para mirar alrededor y pellizcá para acercarte.</p>
     </section>
 
     <aside id="toolbox" class="toolbox hidden" aria-label="Herramientas del mosaico">
@@ -64,14 +72,16 @@
         <button id="undoBtn" class="button ghost" type="button">DESHACER</button>
         <button id="clearBtn" class="button ghost" type="button">LIMPIAR</button>
         <button id="saveBtn" class="button ghost" type="button">GUARDAR</button>
-        <button id="finishBtn" class="button dark" type="button">TERMINAR</button>
+        <button id="finishBtn" class="button dark" type="button">VER OBRA</button>
       </div>
 
-      <p id="modeHelp" class="mode-help">En 3D: hacé clic sobre el piso o la pared. Arrastrá para orbitar y usá la rueda para acercarte.</p>
+      <p id="modeHelp" class="mode-help">Tocá la pared o el piso para colocar. Arrastrá para mirar alrededor y pellizcá para acercarte.</p>
     </aside>
 
     <button id="showTools" class="show-tools hidden" type="button">EDITAR MOSAICO</button>
+    <button id="resetView" class="reset-view hidden" type="button">REUBICAR VISTA</button>
 
+    <div id="surfaceLabel" class="surface-label hidden">PARED + PISO · ENTORNO DE PRUEBA</div>
     <div id="status" class="status" role="status" aria-live="polite"></div>
 
     <footer class="footer">Ricardo Robles · Arte Digital</footer>

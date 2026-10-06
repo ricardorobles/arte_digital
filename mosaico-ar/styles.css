@@ -277,3 +277,36 @@ h1 {
   .toolbox { width: calc(100vw - 20px); bottom: max(10px, env(safe-area-inset-bottom)); max-height: 58vh; overflow: auto; }
   .footer { display: none; }
 }
+
+.reset-view {
+  position: absolute;
+  z-index: 18;
+  right: 18px;
+  top: 66px;
+  border: 1px solid rgba(17,17,17,.18);
+  background: rgba(247,246,242,.88);
+  backdrop-filter: blur(10px);
+  padding: 9px 11px;
+  color: var(--ink);
+  font-size: 8px;
+  letter-spacing: .12em;
+  font-weight: 600;
+}
+.surface-label {
+  position: absolute;
+  z-index: 12;
+  left: 18px;
+  top: 70px;
+  color: rgba(17,17,17,.42);
+  font-size: 8px;
+  letter-spacing: .15em;
+  pointer-events: none;
+}
+@media (max-width: 720px) {
+  .intro { top: 48%; }
+  .intro-actions { flex-direction: column; align-items: stretch; }
+  .intro-actions .button, .ar-mount { width: 100%; }
+  .ar-mount > button, #ARButton { width: 100% !important; }
+  .reset-view { right: 12px; top: 58px; }
+  .surface-label { left: 14px; top: 61px; max-width: 52vw; line-height: 1.4; }
+}

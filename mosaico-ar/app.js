@@ -1,6 +1,6 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/controls/OrbitControls.js';
-import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/webxr/ARButton.js';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { ARButton } from 'three/addons/webxr/ARButton.js';
 
 const PIECES = [
   { src: './assets/piezas/pieza-01.jpg', name: 'Pieza 01', ratio: 1 },
@@ -11,25 +11,28 @@ const PIECES = [
   { src: './assets/piezas/pieza-06.jpg', name: 'Pieza 06', ratio: 1 }
 ];
 
-const stage = document.querySelector('#stage');
-const intro = document.querySelector('#intro');
-const toolbox = document.querySelector('#toolbox');
-const showTools = document.querySelector('#showTools');
-const pieceStrip = document.querySelector('#pieceStrip');
-const startDesktop = document.querySelector('#startDesktop');
-const closeTools = document.querySelector('#closeTools');
-const depthRange = document.querySelector('#depthRange');
-const depthOutput = document.querySelector('#depthOutput');
-const scaleRange = document.querySelector('#scaleRange');
-const scaleOutput = document.querySelector('#scaleOutput');
-const undoBtn = document.querySelector('#undoBtn');
-const clearBtn = document.querySelector('#clearBtn');
-const saveBtn = document.querySelector('#saveBtn');
-const finishBtn = document.querySelector('#finishBtn');
-const statusEl = document.querySelector('#status');
-const mosaicCode = document.querySelector('#mosaicCode');
-const modeHelp = document.querySelector('#modeHelp');
-const arButtonMount = document.querySelector('#arButtonMount');
+const $ = (s) => document.querySelector(s);
+const stage = $('#stage');
+const intro = $('#intro');
+const toolbox = $('#toolbox');
+const showTools = $('#showTools');
+const pieceStrip = $('#pieceStrip');
+const startDesktop = $('#startDesktop');
+const closeTools = $('#closeTools');
+const depthRange = $('#depthRange');
+const depthOutput = $('#depthOutput');
+const scaleRange = $('#scaleRange');
+const scaleOutput = $('#scaleOutput');
+const undoBtn = $('#undoBtn');
+const clearBtn = $('#clearBtn');
+const saveBtn = $('#saveBtn');
+const finishBtn = $('#finishBtn');
+const resetView = $('#resetView');
+const statusEl = $('#status');
+const surfaceLabel = $('#surfaceLabel');
+const mosaicCode = $('#mosaicCode');
+const modeHelp = $('#modeHelp');
+const arButtonMount = $('#arButtonMount');
 
 const mosaicId = String(Math.floor(1000 + Math.random() * 9000));
 mosaicCode.textContent = `#${mosaicId}`;
@@ -43,12 +46,12 @@ let isAR = false;
 let hitTestSource = null;
 let hitTestSourceRequested = false;
 let reticleVisibleLast = false;
+let pointerDown = null;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf7f6f2);
+scene.background = new THREE.Color(0xf4f3ef);
 
-const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.01, 100);
-camera.position.set(2.7, 2.4, 3.8);
+const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.01, 100);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -59,43 +62,78 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
+renderer.domElement.style.touchAction = 'none';
 stage.appendChild(renderer.domElement);
 
-const ambient = new THREE.HemisphereLight(0xffffff, 0x8c8c86, 2.0);
+const ambient = new THREE.HemisphereLight(0xffffff, 0xb7b4aa, 2.25);
 scene.add(ambient);
-const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
-keyLight.position.set(3, 6, 4);
+const keyLight = new THREE.DirectionalLight(0xffffff, 2.6);
+keyLight.position.set(3.5, 6.5, 4.5);
 keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(2048, 2048);
+keyLight.shadow.camera.left = -5;
+keyLight.shadow.camera.right = 5;
+keyLight.shadow.camera.top = 5;
+keyLight.shadow.camera.bottom = -5;
 scene.add(keyLight);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.target.set(0, 0.9, 0);
-controls.maxPolarAngle = Math.PI * 0.49;
+controls.dampingFactor = 0.07;
+controls.enablePan = false;
+controls.rotateSpeed = 0.72;
+controls.zoomSpeed = 0.8;
+controls.target.set(0, 1.25, -1.3);
+controls.maxPolarAngle = Math.PI * 0.495;
+controls.minPolarAngle = 0.16;
 controls.minDistance = 1.5;
-controls.maxDistance = 9;
+controls.maxDistance = 8;
 controls.enabled = false;
 
-// Desktop surfaces: one floor and one wall, intentionally neutral and gallery-like.
-const floorMat = new THREE.MeshStandardMaterial({ color: 0xeceae4, roughness: 0.92, metalness: 0 });
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(7, 6), floorMat);
+function resetCamera() {
+  camera.position.set(3.05, 2.45, 4.65);
+  controls.target.set(0, 1.2, -1.45);
+  controls.update();
+}
+resetCamera();
+
+// Sala virtual mínima: piso + pared blanca. Es deliberadamente neutra para que la obra sea protagonista.
+const room = new THREE.Group();
+scene.add(room);
+
+const floorMat = new THREE.MeshStandardMaterial({ color: 0xeeeDE8, roughness: 0.96, metalness: 0 });
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(8, 7), floorMat);
 floor.rotation.x = -Math.PI / 2;
+floor.position.set(0, 0, 0.55);
 floor.receiveShadow = true;
 floor.userData.surfaceType = 'floor';
-scene.add(floor);
+room.add(floor);
 
-const wallMat = new THREE.MeshStandardMaterial({ color: 0xf8f7f3, roughness: 0.96, metalness: 0 });
-const wall = new THREE.Mesh(new THREE.PlaneGeometry(7, 3.6), wallMat);
-wall.position.set(0, 1.8, -2.2);
-wall.userData.surfaceType = 'wall';
+const wallMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.97, metalness: 0 });
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(8, 4.2), wallMat);
+wall.position.set(0, 2.1, -2.65);
 wall.receiveShadow = true;
-scene.add(wall);
+wall.userData.surfaceType = 'wall';
+room.add(wall);
 
-const grid = new THREE.GridHelper(7, 14, 0xbab8b2, 0xd8d6d0);
-grid.position.y = 0.002;
-grid.material.opacity = 0.16;
-grid.material.transparent = true;
-scene.add(grid);
+// Zócalo fino que ayuda a leer el encuentro espacial sin competir con las piezas.
+const skirting = new THREE.Mesh(
+  new THREE.BoxGeometry(8, 0.055, 0.045),
+  new THREE.MeshStandardMaterial({ color: 0xd7d5cf, roughness: 1 })
+);
+skirting.position.set(0, 0.035, -2.61);
+skirting.receiveShadow = true;
+room.add(skirting);
+
+const softShadow = new THREE.Mesh(
+  new THREE.PlaneGeometry(7.5, 6.5),
+  new THREE.ShadowMaterial({ opacity: 0.12 })
+);
+softShadow.rotation.x = -Math.PI / 2;
+softShadow.position.y = 0.004;
+softShadow.position.z = 0.5;
+softShadow.receiveShadow = true;
+room.add(softShadow);
 
 const reticle = new THREE.Mesh(
   new THREE.RingGeometry(0.07, 0.09, 36).rotateX(-Math.PI / 2),
@@ -108,13 +146,12 @@ scene.add(reticle);
 const controller = renderer.xr.getController(0);
 controller.addEventListener('select', () => {
   if (!isAR || !reticle.visible) return;
-  placeFromMatrix(reticle.matrix, 'ar');
+  placeFromMatrix(reticle.matrix);
 });
 scene.add(controller);
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
-
 const textureLoader = new THREE.TextureLoader();
 const textures = PIECES.map((piece) => {
   const texture = textureLoader.load(piece.src);
@@ -131,7 +168,7 @@ function createPiece(pieceIndex, depth, scale = 1) {
 
   const slab = new THREE.Mesh(
     new THREE.BoxGeometry(width, thickness, height),
-    new THREE.MeshStandardMaterial({ color: 0xf4f2ed, roughness: 0.86, metalness: 0 })
+    new THREE.MeshStandardMaterial({ color: 0xf3f1eb, roughness: 0.88, metalness: 0 })
   );
   slab.castShadow = true;
   slab.receiveShadow = true;
@@ -145,43 +182,40 @@ function createPiece(pieceIndex, depth, scale = 1) {
   image.position.y = thickness / 2 + 0.0015;
   group.add(image);
 
-  // Very thin black edge: recalls the drawn outlines without altering the original image.
   const edge = new THREE.LineSegments(
     new THREE.EdgesGeometry(slab.geometry),
-    new THREE.LineBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.22 })
+    new THREE.LineBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.18 })
   );
   group.add(edge);
 
   group.userData = {
-    pieceIndex,
-    depth,
-    scale,
+    pieceIndex, depth, scale,
     id: `pieza-${Date.now()}-${Math.random().toString(16).slice(2)}`
   };
   return group;
 }
 
-function placeFromMatrix(matrix, source = 'ar') {
+function placeFromMatrix(matrix) {
   const piece = createPiece(selectedIndex, currentDepth, currentScale);
   matrix.decompose(piece.position, piece.quaternion, piece.scale);
-
-  // Slightly lift from detected plane to avoid z-fighting.
   const normal = new THREE.Vector3(0, 1, 0).applyQuaternion(piece.quaternion);
   piece.position.addScaledVector(normal, currentDepth / 2 + 0.004);
-
   scene.add(piece);
   placed.push(piece);
   flash(`Pieza ${selectedIndex + 1} colocada`);
 }
 
-function placeOnDesktop(event) {
-  if (!desktopMode || isAR) return;
+function rayFromClient(clientX, clientY) {
   const rect = renderer.domElement.getBoundingClientRect();
-  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
+  return raycaster.intersectObjects([wall, floor], false);
+}
 
-  const hits = raycaster.intersectObjects([wall, floor], false);
+function placeOnDesktop(clientX, clientY) {
+  if (!desktopMode || isAR) return;
+  const hits = rayFromClient(clientX, clientY);
   if (!hits.length) return;
 
   const hit = hits[0];
@@ -189,25 +223,31 @@ function placeOnDesktop(event) {
   piece.position.copy(hit.point);
 
   if (hit.object.userData.surfaceType === 'floor') {
-    // local Y points out of floor; tile face remains upward.
     piece.quaternion.identity();
     piece.position.y += currentDepth / 2 + 0.004;
   } else {
-    // local Y must point toward camera from wall; rotate tile from floor orientation to wall orientation.
     piece.quaternion.setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0));
-    piece.position.z += currentDepth / 2 + 0.004;
+    piece.position.z += currentDepth / 2 + 0.006;
   }
 
   scene.add(piece);
   placed.push(piece);
-  flash(`Pieza ${selectedIndex + 1} colocada`);
+  flash(`${PIECES[selectedIndex].name} · ${hit.object.userData.surfaceType === 'floor' ? 'piso' : 'pared'}`);
 }
 
-renderer.domElement.addEventListener('dblclick', placeOnDesktop);
-renderer.domElement.addEventListener('click', (event) => {
+// En móvil distinguimos un toque de un gesto de órbita. Así se puede componer con un dedo.
+renderer.domElement.addEventListener('pointerdown', (event) => {
   if (!desktopMode || isAR) return;
-  // Avoid accidental placement while orbiting: single click only if pointer barely moved.
-  if (Math.abs(event.movementX || 0) < 2 && Math.abs(event.movementY || 0) < 2) placeOnDesktop(event);
+  pointerDown = { x: event.clientX, y: event.clientY, t: performance.now() };
+});
+renderer.domElement.addEventListener('pointerup', (event) => {
+  if (!desktopMode || isAR || !pointerDown) return;
+  const dx = event.clientX - pointerDown.x;
+  const dy = event.clientY - pointerDown.y;
+  const dist = Math.hypot(dx, dy);
+  const elapsed = performance.now() - pointerDown.t;
+  pointerDown = null;
+  if (dist < 7 && elapsed < 450) placeOnDesktop(event.clientX, event.clientY);
 });
 
 function buildPieceButtons() {
@@ -218,7 +258,8 @@ function buildPieceButtons() {
     button.dataset.index = String(i + 1).padStart(2, '0');
     button.setAttribute('aria-label', `Seleccionar ${piece.name}`);
     button.innerHTML = `<img src="${piece.src}" alt="${piece.name}">`;
-    button.addEventListener('click', () => {
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
       selectedIndex = i;
       document.querySelectorAll('.piece-button').forEach((el, idx) => el.classList.toggle('selected', idx === i));
       flash(`${piece.name} seleccionada`);
@@ -240,14 +281,17 @@ scaleRange.addEventListener('input', () => {
 function enterDesktop() {
   desktopMode = true;
   controls.enabled = true;
+  resetCamera();
   intro.classList.add('hidden');
   toolbox.classList.remove('hidden');
-  floor.visible = true;
-  wall.visible = true;
-  grid.visible = true;
-  modeHelp.textContent = 'Hacé clic sobre el piso o la pared para colocar una pieza. Arrastrá para orbitar y usá la rueda para acercarte.';
+  resetView.classList.remove('hidden');
+  surfaceLabel.classList.remove('hidden');
+  room.visible = true;
+  modeHelp.textContent = 'Tocá la pared o el piso para colocar. Arrastrá para mirar alrededor y pellizcá para acercarte.';
+  flash('Entorno 3D listo');
 }
 startDesktop.addEventListener('click', enterDesktop);
+resetView.addEventListener('click', resetCamera);
 
 closeTools.addEventListener('click', () => {
   toolbox.classList.add('hidden');
@@ -273,17 +317,12 @@ function undoLast() {
   disposeObject(last);
   flash('Última pieza eliminada');
 }
-
 function clearAll() {
   if (!placed.length) return flash('El mosaico ya está vacío');
-  placed.forEach((obj) => {
-    scene.remove(obj);
-    disposeObject(obj);
-  });
+  placed.forEach((obj) => { scene.remove(obj); disposeObject(obj); });
   placed = [];
   flash('Mosaico vacío');
 }
-
 function disposeObject(root) {
   root.traverse((obj) => {
     if (obj.geometry) obj.geometry.dispose();
@@ -293,12 +332,9 @@ function disposeObject(root) {
     }
   });
 }
-
 function saveComposition() {
   const data = {
-    obra: 'Mosaico AR',
-    codigo: `MOSAICO-${mosaicId}`,
-    fecha: new Date().toISOString(),
+    obra: 'Mosaico AR', codigo: `MOSAICO-${mosaicId}`, fecha: new Date().toISOString(),
     piezas: placed.map((piece) => ({
       pieza: piece.userData.pieceIndex + 1,
       profundidad_m: piece.userData.depth,
@@ -325,26 +361,30 @@ function flash(message) {
   flashTimer = setTimeout(() => statusEl.classList.remove('visible'), 1800);
 }
 
-// AR setup. The page remains fully usable in 3D when immersive-ar is unavailable.
-const arButton = ARButton.createButton(renderer, {
-  requiredFeatures: ['hit-test'],
-  optionalFeatures: ['dom-overlay'],
-  domOverlay: { root: document.body }
-});
-arButton.id = 'ARButton';
-arButtonMount.appendChild(arButton);
+// AR real: se conserva como segunda opción. El entorno 3D funciona aunque WebXR no esté disponible.
+try {
+  const arButton = ARButton.createButton(renderer, {
+    requiredFeatures: ['hit-test'],
+    optionalFeatures: ['dom-overlay'],
+    domOverlay: { root: document.body }
+  });
+  arButton.id = 'ARButton';
+  arButtonMount.appendChild(arButton);
+} catch (err) {
+  console.warn('AR no disponible:', err);
+}
 
 renderer.xr.addEventListener('sessionstart', () => {
   isAR = true;
   desktopMode = false;
   controls.enabled = false;
   scene.background = null;
-  floor.visible = false;
-  wall.visible = false;
-  grid.visible = false;
+  room.visible = false;
   intro.classList.add('hidden');
   toolbox.classList.remove('hidden');
-  modeHelp.textContent = 'Mové el teléfono lentamente hasta detectar una superficie. Tocá la pantalla para colocar la pieza.';
+  resetView.classList.add('hidden');
+  surfaceLabel.classList.add('hidden');
+  modeHelp.textContent = 'Mové el teléfono lentamente hasta detectar una superficie. Tocá para colocar la pieza.';
   hitTestSourceRequested = false;
   hitTestSource = null;
   flash('Buscando superficie…');
@@ -352,40 +392,28 @@ renderer.xr.addEventListener('sessionstart', () => {
 
 renderer.xr.addEventListener('sessionend', () => {
   isAR = false;
-  scene.background = new THREE.Color(0xf7f6f2);
+  scene.background = new THREE.Color(0xf4f3ef);
   reticle.visible = false;
   hitTestSourceRequested = false;
   hitTestSource = null;
-  if (!desktopMode) {
-    floor.visible = true;
-    wall.visible = true;
-    grid.visible = true;
-  }
+  room.visible = true;
 });
 
-function updateARHitTest(timestamp, frame) {
+function updateARHitTest(frame) {
   if (!frame || !isAR) return;
   const session = renderer.xr.getSession();
-
   if (!hitTestSourceRequested) {
     session.requestReferenceSpace('viewer').then((referenceSpace) => {
-      session.requestHitTestSource({ space: referenceSpace }).then((source) => {
-        hitTestSource = source;
-      });
+      session.requestHitTestSource({ space: referenceSpace }).then((source) => { hitTestSource = source; });
     });
-    session.addEventListener('end', () => {
-      hitTestSourceRequested = false;
-      hitTestSource = null;
-    });
+    session.addEventListener('end', () => { hitTestSourceRequested = false; hitTestSource = null; });
     hitTestSourceRequested = true;
   }
-
   if (hitTestSource) {
     const referenceSpace = renderer.xr.getReferenceSpace();
     const results = frame.getHitTestResults(hitTestSource);
     if (results.length) {
-      const hit = results[0];
-      const pose = hit.getPose(referenceSpace);
+      const pose = results[0].getPose(referenceSpace);
       reticle.visible = true;
       reticle.matrix.fromArray(pose.transform.matrix);
       if (!reticleVisibleLast) flash('Superficie detectada');
@@ -397,9 +425,9 @@ function updateARHitTest(timestamp, frame) {
   }
 }
 
-function animate(timestamp, frame) {
+function animate(_timestamp, frame) {
   controls.update();
-  updateARHitTest(timestamp, frame);
+  updateARHitTest(frame);
   renderer.render(scene, camera);
 }
 renderer.setAnimationLoop(animate);
