@@ -94,3 +94,39 @@ body.ar-active .show-tools { background: rgba(247,246,242,.9); }
   .reset-view { right: 12px; top: 58px; }
   .surface-label { left: 14px; top: 61px; max-width: 52vw; line-height: 1.4; }
 }
+
+/* Selector explícito de modo sin pieza */
+.piece-picker-row { display:flex; gap:8px; align-items:stretch; }
+.none-piece { flex:0 0 88px; border:1px solid var(--line); background:transparent; color:var(--muted); font-size:8px; letter-spacing:.12em; font-weight:600; }
+.none-piece.selected { border-color:var(--ink); background:var(--ink); color:white; }
+.piece-picker-row .piece-strip { flex:1; }
+
+/* Control radial inspirado en manipuladores táctiles de modelado 3D */
+.transform-pad { position:absolute; z-index:40; right:18px; bottom:max(18px, env(safe-area-inset-bottom)); width:232px; height:232px; touch-action:none; user-select:none; -webkit-user-select:none; }
+.pad-halo { position:absolute; inset:34px; border-radius:50%; background:rgba(33,34,42,.34); backdrop-filter:blur(3px); }
+.pad-handle, .pad-center, .pad-mini { position:absolute; border:1px solid rgba(255,255,255,.12); background:#1d1e25; color:#8e919e; box-shadow:0 2px 8px rgba(0,0,0,.18); touch-action:none; }
+.pad-center { left:50%; top:50%; width:92px; height:92px; transform:translate(-50%,-50%); border-radius:50%; font-size:30px; }
+.pad-center::after { content:""; position:absolute; inset:8px; border:2px solid #666a78; border-radius:50%; }
+.pad-center span { position:relative; z-index:1; }
+.pad-handle { display:flex; align-items:center; justify-content:center; font-size:22px; }
+.pad-top { left:50%; top:0; width:92px; height:48px; transform:translateX(-50%); border-radius:18px; }
+.pad-left { left:0; top:50%; width:48px; height:92px; transform:translateY(-50%); border-radius:18px; }
+.pad-right { right:0; top:50%; width:48px; height:112px; transform:translateY(-50%) rotate(-5deg); border-radius:50%; }
+.pad-mini { bottom:0; width:48px; height:48px; border-radius:50%; font-size:26px; color:white; }
+.pad-mini-left { left:48px; }
+.pad-mini-right { right:22px; border-radius:14px; }
+.pad-label { position:absolute; color:rgba(17,17,17,.5); font-size:7px; letter-spacing:.08em; pointer-events:none; font-weight:600; }
+.pad-label-top { top:52px; left:50%; transform:translateX(-50%); }
+.pad-label-left { left:50px; top:50%; transform:translateY(-50%) rotate(-90deg); }
+.pad-label-right { right:44px; top:50%; transform:translateY(-50%) rotate(90deg); }
+.pad-label-center { left:50%; top:50%; transform:translate(-50%,58px); color:rgba(255,255,255,.55); }
+body.ar-active .transform-pad { right:12px; bottom:max(12px, env(safe-area-inset-bottom)); transform:scale(.84); transform-origin:right bottom; }
+body.ar-active .pad-label { color:rgba(255,255,255,.72); text-shadow:0 1px 4px rgba(0,0,0,.45); }
+
+@media (max-width:720px) {
+  .piece-picker-row { align-items:stretch; }
+  .none-piece { flex-basis:70px; }
+  .piece-picker-row .piece-strip { grid-template-columns:repeat(6,68px); }
+  .transform-pad { width:210px; height:210px; right:10px; bottom:max(10px, env(safe-area-inset-bottom)); transform:scale(.86); transform-origin:right bottom; }
+  .toolbox.has-selection { padding-bottom:124px; }
+}

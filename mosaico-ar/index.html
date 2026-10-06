@@ -51,7 +51,10 @@
         <button id="closeTools" class="icon-button" type="button" aria-label="Ocultar herramientas">×</button>
       </div>
 
-      <div id="pieceStrip" class="piece-strip" role="list"></div>
+      <div class="piece-picker-row">
+        <button id="nonePieceBtn" class="none-piece selected" type="button">NINGUNA</button>
+        <div id="pieceStrip" class="piece-strip" role="list"></div>
+      </div>
 
       <div class="controls-grid">
         <label class="control">
@@ -72,9 +75,8 @@
       </div>
 
       <div id="editRow" class="edit-row hidden">
-        <button id="relocateBtn" class="button ghost" type="button">REUBICAR</button>
         <button id="deleteBtn" class="button danger" type="button">BORRAR PIEZA</button>
-        <button id="deselectBtn" class="button ghost" type="button">NUEVA PIEZA</button>
+        <button id="deselectBtn" class="button ghost" type="button">DESELECCIONAR</button>
       </div>
 
       <div class="actions-row">
@@ -86,6 +88,20 @@
 
       <p id="modeHelp" class="mode-help">Tocá la pared o el piso para colocar. Tocá una pieza para seleccionarla y arrastrala para moverla.</p>
     </aside>
+
+    <div id="transformPad" class="transform-pad hidden" aria-label="Control de transformación de pieza">
+      <div class="pad-halo"></div>
+      <button id="scaleHandle" class="pad-handle pad-top" type="button" aria-label="Cambiar tamaño"><span>↔</span></button>
+      <button id="depthHandle" class="pad-handle pad-left" type="button" aria-label="Cambiar profundidad"><span>↕</span></button>
+      <button id="rotateHandle" class="pad-handle pad-right" type="button" aria-label="Rotar pieza"><span>↕</span></button>
+      <button id="moveHandle" class="pad-center" type="button" aria-label="Mover pieza"><span>✥</span></button>
+      <button id="padDeselect" class="pad-mini pad-mini-left" type="button" aria-label="Deseleccionar"><span>○</span></button>
+      <button id="padDelete" class="pad-mini pad-mini-right" type="button" aria-label="Borrar pieza"><span>×</span></button>
+      <div class="pad-label pad-label-top">TAMAÑO</div>
+      <div class="pad-label pad-label-left">ESPESOR</div>
+      <div class="pad-label pad-label-right">GIRAR</div>
+      <div class="pad-label pad-label-center">MOVER</div>
+    </div>
 
     <button id="showTools" class="show-tools hidden" type="button">EDITAR MOSAICO</button>
     <button id="resetView" class="reset-view hidden" type="button">REUBICAR VISTA</button>

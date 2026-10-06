@@ -38,27 +38,35 @@ const arButtonMount = $('#arButtonMount');
 const selectionLabel = $('#selectionLabel');
 const toolboxTitle = $('#toolboxTitle');
 const editRow = $('#editRow');
-const relocateBtn = $('#relocateBtn');
 const deleteBtn = $('#deleteBtn');
 const deselectBtn = $('#deselectBtn');
+const nonePieceBtn = $('#nonePieceBtn');
+const transformPad = $('#transformPad');
+const moveHandle = $('#moveHandle');
+const rotateHandle = $('#rotateHandle');
+const scaleHandle = $('#scaleHandle');
+const depthHandle = $('#depthHandle');
+const padDeselect = $('#padDeselect');
+const padDelete = $('#padDelete');
 
 const mosaicId = String(Math.floor(1000 + Math.random() * 9000));
 mosaicCode.textContent = `#${mosaicId}`;
 
-let selectedIndex = 0;
+let selectedIndex = null;
 let currentDepth = Number(depthRange.value);
 let currentScale = Number(scaleRange.value);
 let placed = [];
 let selectedPiece = null;
 let desktopMode = false;
 let isAR = false;
-let relocating = false;
 let hitTestSource = null;
 let hitTestSourceRequested = false;
 let reticleVisibleLast = false;
 let pointerDown = null;
 let draggingPiece = false;
 let dragMoved = false;
+let uiGuardUntil = 0;
+let padGesture = null;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf4f3ef);
@@ -187,6 +195,8 @@ function createPiece(pieceIndex, depth, scale = 1) {
     scale,
     surfaceType: null,
     anchor: new THREE.Vector3(),
+    surfaceQuaternion: new THREE.Quaternion(),
+    userRotation: 0,
     id: `pieza-${Date.now()}-${Math.random().toString(16).slice(2)}`
   };
   updatePieceGeometry(group);
@@ -204,15 +214,22 @@ function updatePieceGeometry(piece) {
   if (piece === selectedPiece) selectionBox.update();
 }
 
+function updatePieceOrientation(piece) {
+  const base = piece.userData.surfaceQuaternion || new THREE.Quaternion();
+  const spin = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), piece.userData.userRotation || 0);
+  piece.quaternion.copy(base).multiply(spin);
+}
+
 function updatePiecePosition(piece) {
   if (!piece.userData.anchor) return;
-  const normal = new THREE.Vector3(0, 1, 0).applyQuaternion(piece.quaternion).normalize();
+  updatePieceOrientation(piece);
+  const normal = new THREE.Vector3(0, 1, 0).applyQuaternion(piece.userData.surfaceQuaternion).normalize();
   piece.position.copy(piece.userData.anchor).addScaledVector(normal, piece.userData.depth / 2 + EPS);
 }
 
 function selectPiece(piece, announce = true) {
   selectedPiece = piece;
-  relocating = false;
+  setPlacementSelection(null, false);
   selectionBox.setFromObject(piece);
   selectionBox.visible = true;
   depthRange.value = String(piece.userData.depth);
@@ -221,6 +238,8 @@ function selectPiece(piece, announce = true) {
   currentScale = piece.userData.scale;
   updateOutputs();
   editRow.classList.remove('hidden');
+  transformPad.classList.remove('hidden');
+  toolbox.classList.add('has-selection');
   toolboxTitle.textContent = 'EDITAR PIEZA';
   selectionLabel.textContent = `· ${PIECES[piece.userData.pieceIndex].name}`;
   if (announce) flash(`${PIECES[piece.userData.pieceIndex].name} seleccionada`);
@@ -228,14 +247,14 @@ function selectPiece(piece, announce = true) {
 
 function deselectPiece(announce = false) {
   selectedPiece = null;
-  relocating = false;
   selectionBox.visible = false;
   editRow.classList.add('hidden');
+  transformPad.classList.add('hidden');
+  toolbox.classList.remove('has-selection');
   toolboxTitle.textContent = 'NUEVA PIEZA';
   selectionLabel.textContent = '· ninguna seleccionada';
   depthRange.value = String(currentDepth);
   scaleRange.value = String(currentScale);
-  relocateBtn.classList.remove('active');
   if (announce) flash('Modo nueva pieza');
 }
 
@@ -250,13 +269,14 @@ function rootPieceFromObject(obj) {
 
 function setPieceAnchorAndOrientation(piece, anchor, quaternion, surfaceType = 'ar') {
   piece.userData.anchor.copy(anchor);
-  piece.quaternion.copy(quaternion);
+  piece.userData.surfaceQuaternion.copy(quaternion);
   piece.userData.surfaceType = surfaceType;
   updatePiecePosition(piece);
   if (piece === selectedPiece) selectionBox.update();
 }
 
 function placeFromMatrix(matrix) {
+  if (selectedIndex === null) return flash('Elegí una obra para colocar');
   const anchor = new THREE.Vector3();
   const quaternion = new THREE.Quaternion();
   const ignoredScale = new THREE.Vector3();
@@ -265,21 +285,11 @@ function placeFromMatrix(matrix) {
   setPieceAnchorAndOrientation(piece, anchor, quaternion, 'ar');
   scene.add(piece);
   placed.push(piece);
+  const placedName = PIECES[piece.userData.pieceIndex].name;
   selectPiece(piece, false);
-  flash(`${PIECES[selectedIndex].name} colocada`);
+  flash(`${placedName} colocada`);
 }
 
-function moveSelectedFromMatrix(matrix) {
-  if (!selectedPiece) return;
-  const anchor = new THREE.Vector3();
-  const quaternion = new THREE.Quaternion();
-  const ignoredScale = new THREE.Vector3();
-  matrix.decompose(anchor, quaternion, ignoredScale);
-  setPieceAnchorAndOrientation(selectedPiece, anchor, quaternion, 'ar');
-  relocating = false;
-  relocateBtn.classList.remove('active');
-  flash('Pieza reubicada');
-}
 
 function rayFromClient(clientX, clientY, objects, recursive = false) {
   const rect = renderer.domElement.getBoundingClientRect();
@@ -306,14 +316,16 @@ function surfaceOrientation(hit) {
 }
 
 function placeOnDesktop(clientX, clientY) {
+  if (selectedIndex === null) return;
   const hit = surfaceHitFromClient(clientX, clientY);
   if (!hit) return;
   const piece = createPiece(selectedIndex, currentDepth, currentScale);
   setPieceAnchorAndOrientation(piece, hit.point, surfaceOrientation(hit), hit.object.userData.surfaceType);
   scene.add(piece);
   placed.push(piece);
+  const placedName = PIECES[piece.userData.pieceIndex].name;
   selectPiece(piece, false);
-  flash(`${PIECES[selectedIndex].name} · ${hit.object.userData.surfaceType === 'floor' ? 'piso' : 'pared'}`);
+  flash(`${placedName} · ${hit.object.userData.surfaceType === 'floor' ? 'piso' : 'pared'}`);
 }
 
 function moveSelectedOnDesktop(clientX, clientY) {
@@ -364,37 +376,37 @@ renderer.domElement.addEventListener('pointerup', (event) => {
   const elapsed = performance.now() - down.t;
   if (dist >= 7 || elapsed >= 450) return;
 
-  if (relocating && selectedPiece) {
-    const hit = surfaceHitFromClient(event.clientX, event.clientY);
-    if (hit) {
-      setPieceAnchorAndOrientation(selectedPiece, hit.point, surfaceOrientation(hit), hit.object.userData.surfaceType);
-      relocating = false;
-      relocateBtn.classList.remove('active');
-      flash('Pieza reubicada');
-    }
-    return;
-  }
   placeOnDesktop(event.clientX, event.clientY);
 });
+
+function setPlacementSelection(index, announce = true) {
+  selectedIndex = index;
+  document.querySelectorAll('.piece-button').forEach((el, idx) => el.classList.toggle('selected', index === idx));
+  nonePieceBtn.classList.toggle('selected', index === null);
+  if (announce) flash(index === null ? 'Ninguna obra seleccionada' : `${PIECES[index].name} lista para colocar`);
+}
 
 function buildPieceButtons() {
   PIECES.forEach((piece, i) => {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = `piece-button${i === selectedIndex ? ' selected' : ''}`;
+    button.className = 'piece-button';
     button.dataset.index = String(i + 1).padStart(2, '0');
     button.setAttribute('aria-label', `Seleccionar ${piece.name}`);
     button.innerHTML = `<img src="${piece.src}" alt="${piece.name}">`;
     button.addEventListener('click', (e) => {
       e.stopPropagation();
-      selectedIndex = i;
-      document.querySelectorAll('.piece-button').forEach((el, idx) => el.classList.toggle('selected', idx === i));
       deselectPiece(false);
-      flash(`${piece.name} lista para colocar`);
+      setPlacementSelection(selectedIndex === i ? null : i, true);
     });
     pieceStrip.appendChild(button);
   });
 }
+nonePieceBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  deselectPiece(false);
+  setPlacementSelection(null, true);
+});
 buildPieceButtons();
 
 function updateOutputs() {
@@ -431,7 +443,7 @@ function enterDesktop() {
   resetView.classList.remove('hidden');
   surfaceLabel.classList.remove('hidden');
   room.visible = true;
-  modeHelp.textContent = 'Tocá una pieza para editarla. Arrastrala sobre su superficie para moverla. Tocá pared o piso para agregar otra.';
+  modeHelp.textContent = 'Elegí una obra para colocarla. Tocá una pieza colocada para editarla con el control circular.';
   flash('Entorno 3D listo');
 }
 startDesktop.addEventListener('click', enterDesktop);
@@ -456,22 +468,10 @@ clearBtn.addEventListener('click', clearAll);
 saveBtn.addEventListener('click', saveComposition);
 deleteBtn.addEventListener('click', deleteSelected);
 deselectBtn.addEventListener('click', () => deselectPiece(true));
-relocateBtn.addEventListener('click', () => {
-  if (!selectedPiece) return;
-  relocating = !relocating;
-  relocateBtn.classList.toggle('active', relocating);
-  if (relocating) {
-    flash(isAR ? 'Apuntá a otra superficie y tocá' : 'Tocá otra posición en pared o piso');
-    modeHelp.textContent = isAR
-      ? 'REUBICAR activo: apuntá a la nueva superficie y tocá. La pieza seleccionada se moverá allí.'
-      : 'REUBICAR activo: tocá una nueva posición en la pared o el piso.';
-  } else {
-    flash('Reubicación cancelada');
-  }
-});
 
 function deleteSelected() {
   if (!selectedPiece) return;
+  setPlacementSelection(null, false);
   const idx = placed.indexOf(selectedPiece);
   if (idx >= 0) placed.splice(idx, 1);
   scene.remove(selectedPiece);
@@ -481,6 +481,7 @@ function deleteSelected() {
   flash('Pieza eliminada');
 }
 function undoLast() {
+  setPlacementSelection(null, false);
   const last = placed.pop();
   if (!last) return flash('No hay piezas para deshacer');
   if (last === selectedPiece) selectedPiece = null;
@@ -490,6 +491,7 @@ function undoLast() {
   flash('Última pieza eliminada');
 }
 function clearAll() {
+  setPlacementSelection(null, false);
   if (!placed.length) return flash('El mosaico ya está vacío');
   placed.forEach((obj) => { scene.remove(obj); disposeObject(obj); });
   placed = [];
@@ -516,7 +518,9 @@ function saveComposition() {
       superficie: piece.userData.surfaceType,
       anclaje: piece.userData.anchor.toArray(),
       posicion: piece.position.toArray(),
-      quaternion: piece.quaternion.toArray()
+      quaternion: piece.quaternion.toArray(),
+      quaternion_superficie: piece.userData.surfaceQuaternion.toArray(),
+      rotacion_rad: piece.userData.userRotation
     }))
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -543,6 +547,7 @@ const controllerRayOrigin = new THREE.Vector3();
 const controllerRayDirection = new THREE.Vector3();
 controller.addEventListener('select', () => {
   if (!isAR) return;
+  if (performance.now() < uiGuardUntil) return;
 
   controllerRayMatrix.identity().extractRotation(controller.matrixWorld);
   controllerRayOrigin.setFromMatrixPosition(controller.matrixWorld);
@@ -561,10 +566,101 @@ controller.addEventListener('select', () => {
     flash('Todavía no hay una superficie detectada');
     return;
   }
-  if (relocating && selectedPiece) moveSelectedFromMatrix(reticle.matrix);
-  else placeFromMatrix(reticle.matrix);
+  if (selectedIndex === null) { flash('Elegí una obra para colocar'); return; }
+  placeFromMatrix(reticle.matrix);
 });
 scene.add(controller);
+
+
+function guardUIEvent(e) {
+  uiGuardUntil = performance.now() + 500;
+  e.stopPropagation?.();
+}
+
+document.querySelectorAll('button, input, .toolbox, .transform-pad').forEach((el) => {
+  el.addEventListener('pointerdown', guardUIEvent, { passive: true });
+  el.addEventListener('touchstart', guardUIEvent, { passive: true });
+});
+
+function adjustSelectedMove(dx, dy) {
+  if (!selectedPiece) return;
+  const q = selectedPiece.userData.surfaceQuaternion;
+  const tangentX = new THREE.Vector3(1, 0, 0).applyQuaternion(q).normalize();
+  const tangentY = new THREE.Vector3(0, 0, -1).applyQuaternion(q).normalize();
+  const factor = isAR ? 0.0016 : 0.0022;
+  selectedPiece.userData.anchor.addScaledVector(tangentX, dx * factor);
+  selectedPiece.userData.anchor.addScaledVector(tangentY, dy * factor);
+  updatePiecePosition(selectedPiece);
+}
+
+function adjustSelectedRotation(delta) {
+  if (!selectedPiece) return;
+  selectedPiece.userData.userRotation += delta * 0.012;
+  updatePiecePosition(selectedPiece);
+}
+
+function adjustSelectedScale(delta) {
+  if (!selectedPiece) return;
+  const next = THREE.MathUtils.clamp(selectedPiece.userData.scale + delta * 0.006, 0.40, 2.20);
+  selectedPiece.userData.scale = next;
+  currentScale = next;
+  scaleRange.value = String(next);
+  updateOutputs();
+  updatePieceGeometry(selectedPiece);
+}
+
+function adjustSelectedDepth(delta) {
+  if (!selectedPiece) return;
+  const next = THREE.MathUtils.clamp(selectedPiece.userData.depth + delta * 0.00055, 0.01, 0.20);
+  selectedPiece.userData.depth = next;
+  currentDepth = next;
+  depthRange.value = String(next);
+  updateOutputs();
+  updatePieceGeometry(selectedPiece);
+}
+
+function bindPadGesture(el, type) {
+  el.addEventListener('pointerdown', (e) => {
+    guardUIEvent(e);
+    if (!selectedPiece) return;
+    padGesture = { type, x: e.clientX, y: e.clientY };
+    el.setPointerCapture?.(e.pointerId);
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (!padGesture || padGesture.type !== type || !selectedPiece) return;
+    guardUIEvent(e);
+    const dx = e.clientX - padGesture.x;
+    const dy = e.clientY - padGesture.y;
+    padGesture.x = e.clientX;
+    padGesture.y = e.clientY;
+    if (type === 'move') adjustSelectedMove(dx, dy);
+    if (type === 'rotate') adjustSelectedRotation(-dy);
+    if (type === 'scale') adjustSelectedScale(dx);
+    if (type === 'depth') adjustSelectedDepth(-dy);
+  });
+  const end = (e) => {
+    if (!padGesture || padGesture.type !== type) return;
+    guardUIEvent(e);
+    padGesture = null;
+    el.releasePointerCapture?.(e.pointerId);
+  };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+}
+
+bindPadGesture(moveHandle, 'move');
+bindPadGesture(rotateHandle, 'rotate');
+bindPadGesture(scaleHandle, 'scale');
+bindPadGesture(depthHandle, 'depth');
+padDelete.addEventListener('click', (e) => { guardUIEvent(e); deleteSelected(); });
+padDeselect.addEventListener('click', (e) => { guardUIEvent(e); deselectPiece(true); setPlacementSelection(null, false); });
+
+document.body.addEventListener('beforexrselect', (event) => {
+  if (event.target.closest?.('button, input, .toolbox, .transform-pad, .topbar')) {
+    uiGuardUntil = performance.now() + 700;
+    event.preventDefault();
+  }
+});
 
 async function setupARButton() {
   try {
@@ -584,6 +680,8 @@ async function setupARButton() {
       domOverlay: { root: document.body }
     });
     arButton.id = 'ARButton';
+    arButton.addEventListener('pointerdown', guardUIEvent, { passive: true });
+    arButton.addEventListener('touchstart', guardUIEvent, { passive: true });
     arButtonMount.appendChild(arButton);
   } catch (err) {
     console.warn('AR no disponible:', err);
@@ -603,11 +701,12 @@ renderer.xr.addEventListener('sessionstart', () => {
   toolbox.classList.remove('hidden');
   resetView.classList.add('hidden');
   surfaceLabel.classList.add('hidden');
-  modeHelp.textContent = 'Mové el teléfono lentamente. Cuando aparezca el aro, tocá para colocar. Tocá una pieza para editarla.';
+  modeHelp.textContent = 'Mové el teléfono lentamente. Elegí una obra y tocá el aro para colocarla. Tocá una pieza colocada para editarla.';
   hitTestSourceRequested = false;
   hitTestSource = null;
   reticleVisibleLast = false;
   deselectPiece(false);
+  setPlacementSelection(null, false);
   flash('Cámara activa · buscando superficie…');
 });
 
