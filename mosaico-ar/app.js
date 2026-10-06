@@ -72,7 +72,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf4f3ef);
 const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.01, 100);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, premultipliedAlpha: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, premultipliedAlpha: true, preserveDrawingBuffer: true });
 renderer.setClearColor(0x000000, 0);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
@@ -159,13 +159,23 @@ const textures = PIECES.map((piece) => {
   return texture;
 });
 
-const selectionBox = new THREE.BoxHelper(undefined, 0x111111);
+const selectionBounds = new THREE.Box3();
+const selectionBox = new THREE.Box3Helper(selectionBounds, 0x111111);
 selectionBox.visible = false;
 selectionBox.material.transparent = true;
 selectionBox.material.opacity = 0.75;
 selectionBox.material.depthTest = false;
 selectionBox.renderOrder = 999;
 scene.add(selectionBox);
+
+function updateSelectionBox() {
+  if (!selectedPiece) {
+    selectionBox.visible = false;
+    return;
+  }
+  selectionBounds.setFromObject(selectedPiece);
+  selectionBox.visible = true;
+}
 
 function createPiece(pieceIndex, depth, scale = 1) {
   const group = new THREE.Group();
@@ -211,7 +221,7 @@ function updatePieceGeometry(piece) {
   image.scale.set(scale, scale, 1);
   image.position.y = depth / 2 + 0.0015;
   updatePiecePosition(piece);
-  if (piece === selectedPiece) selectionBox.update();
+  if (piece === selectedPiece) updateSelectionBox();
 }
 
 function updatePieceOrientation(piece) {
@@ -230,8 +240,7 @@ function updatePiecePosition(piece) {
 function selectPiece(piece, announce = true) {
   selectedPiece = piece;
   setPlacementSelection(null, false);
-  selectionBox.setFromObject(piece);
-  selectionBox.visible = true;
+  updateSelectionBox();
   depthRange.value = String(piece.userData.depth);
   scaleRange.value = String(piece.userData.scale);
   currentDepth = piece.userData.depth;
@@ -272,7 +281,7 @@ function setPieceAnchorAndOrientation(piece, anchor, quaternion, surfaceType = '
   piece.userData.surfaceQuaternion.copy(quaternion);
   piece.userData.surfaceType = surfaceType;
   updatePiecePosition(piece);
-  if (piece === selectedPiece) selectionBox.update();
+  if (piece === selectedPiece) updateSelectionBox();
 }
 
 function placeFromMatrix(matrix) {
@@ -511,29 +520,37 @@ function disposeObject(root) {
   });
 }
 function saveComposition() {
-  const data = {
-    obra: 'Mosaico AR', codigo: `MOSAICO-${mosaicId}`, fecha: new Date().toISOString(),
-    piezas: placed.map((piece) => ({
-      pieza: piece.userData.pieceIndex + 1,
-      profundidad_m: piece.userData.depth,
-      escala: piece.userData.scale,
-      superficie: piece.userData.surfaceType,
-      anclaje: piece.userData.anchor.toArray(),
-      posicion: piece.position.toArray(),
-      quaternion: piece.quaternion.toArray(),
-      quaternion_superficie: piece.userData.surfaceQuaternion.toArray(),
-      rotacion_rad: piece.userData.userRotation
-    }))
+  // Guardamos una imagen PNG del estado visible del lienzo 3D.
+  // En AR, los navegadores no exponen el video de la cámara al canvas WebXR;
+  // por eso la captura incluye las piezas renderizadas, pero no el passthrough de cámara.
+  const previousSelection = selectionBox.visible;
+  selectionBox.visible = false;
+  renderer.render(scene, camera);
+
+  const finishCapture = () => {
+    selectionBox.visible = previousSelection && !!selectedPiece;
+    if (selectedPiece) updateSelectionBox();
   };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `mosaico-${mosaicId}.json`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  flash(`Composición #${mosaicId} guardada`);
+
+  renderer.domElement.toBlob((blob) => {
+    if (!blob) {
+      finishCapture();
+      flash('No se pudo generar la imagen');
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mosaico-${mosaicId}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    finishCapture();
+    flash(isAR ? 'Imagen de la obra guardada · la cámara depende del navegador' : `Imagen #${mosaicId} guardada`);
+  }, 'image/png');
 }
+
 
 let flashTimer;
 function flash(message) {
@@ -617,7 +634,10 @@ function adjustSelectedScale(delta) {
 
 function adjustSelectedDepth(delta) {
   if (!selectedPiece) return;
-  const next = THREE.MathUtils.clamp(selectedPiece.userData.depth + delta * 0.00055, 0.01, 0.20);
+  // Espesor multiplicativo: sin mínimos ni máximos prefijados.
+  // Permanece positivo y puede acercarse libremente a cero o crecer sin tope fijo.
+  const factor = Math.exp(delta * 0.008);
+  const next = selectedPiece.userData.depth * factor;
   selectedPiece.userData.depth = next;
   currentDepth = next;
   depthRange.value = String(next);
@@ -761,7 +781,7 @@ function updateARHitTest(frame) {
 function animate(_timestamp, frame) {
   if (!isAR) controls.update();
   updateARHitTest(frame);
-  if (selectedPiece) selectionBox.update();
+  if (selectedPiece) updateSelectionBox();
   renderer.render(scene, camera);
 }
 renderer.setAnimationLoop(animate);

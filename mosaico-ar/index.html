@@ -39,7 +39,7 @@
         <button id="startDesktop" class="button primary" type="button">ENTRAR AL ENTORNO 3D</button>
         <div id="arButtonMount" class="ar-mount"></div>
       </div>
-      <p class="hint">En 3D: tocá una pieza para editarla y arrastrala para moverla. En AR: tocá una pieza, modificá tamaño/profundidad o elegí REUBICAR.</p>
+      <p class="hint">En 3D y AR: elegí una obra, colocala y tocala para moverla, girarla, cambiar tamaño o espesor.</p>
     </section>
 
     <aside id="pieceDrawer" class="piece-drawer hidden" aria-label="Selector de piezas">
@@ -48,11 +48,13 @@
       <div id="pieceStrip" class="piece-strip" role="list"></div>
     </aside>
 
-    <button id="drawerToggle" class="drawer-toggle hidden" type="button" aria-label="Abrir selector de piezas">PIEZAS</button>
+    <button id="drawerToggle" class="drawer-toggle hidden" type="button" aria-label="Abrir selector de obras" title="Abrir selector de obras">
+      <span class="mosaic-icon" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+    </button>
     <button id="saveBtn" class="save-floating hidden" type="button">GUARDAR</button>
 
     <div class="legacy-controls" aria-hidden="true">
-      <input id="depthRange" type="range" min="0.01" max="0.20" value="0.05" step="0.01" tabindex="-1" />
+      <input id="depthRange" type="hidden" value="0.05" tabindex="-1" />
       <output id="depthOutput">5 cm</output>
       <input id="scaleRange" type="hidden" value="1" tabindex="-1" />
       <output id="scaleOutput">100%</output>

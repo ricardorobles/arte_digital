@@ -241,3 +241,36 @@ body.ar-active .save-floating { background: #d62828; color: white; }
     padding: 0 15px;
   }
 }
+
+
+/* v7 · acceso al selector mediante metáfora de mosaico */
+.drawer-toggle {
+  width: 48px;
+  height: 48px;
+  min-height: 48px;
+  padding: 8px;
+  writing-mode: horizontal-tb;
+  display: grid;
+  place-items: center;
+}
+.mosaic-icon {
+  width: 25px;
+  height: 25px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 2px;
+  transform: rotate(-4deg);
+}
+.mosaic-icon i {
+  display: block;
+  background: currentColor;
+  border-radius: 1px;
+}
+.mosaic-icon i:nth-child(2), .mosaic-icon i:nth-child(6), .mosaic-icon i:nth-child(8) { opacity: .42; }
+.mosaic-icon i:nth-child(4), .mosaic-icon i:nth-child(9) { opacity: .68; }
+
+/* El lienzo simulado siempre ocupa el viewport completo y recibe interacción. */
+#stage, #stage canvas { width: 100%; height: 100%; display: block; }
+#stage canvas { position: absolute; inset: 0; }
+body:not(.ar-active) #stage canvas { background: #f4f3ef; }
