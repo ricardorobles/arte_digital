@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ARButton } from 'three/addons/webxr/ARButton.js';
 
-const FALLBACK_FILES = ['pieza-01.jpg','pieza-02.jpg','pieza-03.jpg','pieza-04.jpg','pieza-05.jpg','pieza-06.jpg'];
+const PIECES_MANIFEST = './assets/piezas/manifest.json';
 const IMAGE_RE = /\.(png|jpe?g|webp)$/i;
 
 function prettyPieceName(filename) {
@@ -75,7 +75,20 @@ async function readImageMetadataDescription(src) {
 }
 
 async function loadPieceCatalog() {
-  let imageNames = [...FALLBACK_FILES];
+  let imageNames = [];
+  // El manifiesto local permite cargar las piezas aun cuando GitHub limite su API.
+  try {
+    const response = await fetch(PIECES_MANIFEST, { cache: 'no-store' });
+    if (response.ok) {
+      const data = await response.json();
+      const names = Array.isArray(data) ? data : data.files;
+      if (Array.isArray(names)) imageNames = names.filter((x) => typeof x === 'string' && IMAGE_RE.test(x));
+    }
+  } catch (err) {
+    console.warn('No se pudo leer el manifiesto local:', err);
+  }
+
+  // Si hay obras nuevas aún no incluidas en el manifiesto, descubrirlas con GitHub.
   try {
     const host = location.hostname.toLowerCase();
     if (host.endsWith('.github.io')) {
@@ -86,22 +99,22 @@ async function loadPieceCatalog() {
       const relativeBase = appIndex >= 0 ? parts.slice(1, appIndex + 1).join('/') : 'mosaico-ar';
       const apiPath = `${relativeBase ? relativeBase + '/' : ''}assets/piezas`;
       const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${apiPath}`, {
-        headers: { Accept: 'application/vnd.github+json' },
-        cache: 'no-store'
+        headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store'
       });
       if (response.ok) {
         const items = await response.json();
-        const images = items.filter((item) => item.type === 'file' && IMAGE_RE.test(item.name));
-        if (images.length) {
-          imageNames = images
-            .map((item) => item.name)
-            .sort((a,b) => a.localeCompare(b, undefined, { numeric:true, sensitivity:'base' }));
+        if (Array.isArray(items)) {
+          imageNames.push(...items.filter((item) => item.type === 'file' && IMAGE_RE.test(item.name)).map((item) => item.name));
         }
       }
     }
   } catch (err) {
-    console.warn('No se pudo leer automáticamente la carpeta de piezas:', err);
+    console.warn('No se pudo consultar GitHub; se usa el catálogo local:', err);
   }
+
+  imageNames = [...new Set(imageNames)]
+    .sort((a,b) => a.localeCompare(b, 'es', { numeric:true, sensitivity:'base' }));
+  if (!imageNames.length) console.error('No se encontraron piezas en el manifiesto ni en GitHub.');
 
   const catalog = imageNames.map((name) => ({
     src: `./assets/piezas/${encodeURIComponent(name)}`,
