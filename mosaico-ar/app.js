@@ -5,7 +5,18 @@ import { ARButton } from 'three/addons/webxr/ARButton.js';
 const PIECES_MANIFEST = './assets/piezas/manifest.json';
 const IMAGE_RE = /\.(png|jpe?g|webp)$/i;
 
+const PIECE_DISPLAY_NAMES = {
+  'El elefante perdido de Saint-Exupery.jpg': 'El elefante perdido de Saint-Exupéry',
+  'El espacio publico enmascarado.jpg': 'El espacio público enmascarado'
+};
+
+function canonicalPieceKey(filename) {
+  return filename.normalize('NFC').replace(/#U00e9/gi, 'é').replace(/#U00fa/gi, 'ú')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es');
+}
+
 function prettyPieceName(filename) {
+  if (PIECE_DISPLAY_NAMES[filename]) return PIECE_DISPLAY_NAMES[filename];
   const stem = filename.replace(/\.[^.]+$/, '');
   return stem.replace(/[-_]+/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
 }
@@ -112,7 +123,9 @@ async function loadPieceCatalog() {
     console.warn('No se pudo consultar GitHub; se usa el catálogo local:', err);
   }
 
-  imageNames = [...new Set(imageNames)]
+  // Si GitHub devuelve una variante antigua del mismo archivo con acentos
+  // o nombres escapados, conservar primero el nombre canónico del manifiesto.
+  imageNames = [...new Map(imageNames.map(n => [canonicalPieceKey(n), n]).reverse()).values()]
     .sort((a,b) => a.localeCompare(b, 'es', { numeric:true, sensitivity:'base' }));
   if (!imageNames.length) console.error('No se encontraron piezas en el manifiesto ni en GitHub.');
 
